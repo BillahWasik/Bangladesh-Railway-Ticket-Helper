@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BR Ticket Helper</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="popup">
+  <!-- Header with Brand & Settings Navigation -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="3" width="16" height="16" rx="2"></rect>
+          <path d="M4 11h16"></path>
+          <path d="M12 3v8"></path>
+          <path d="m8 19-2 3"></path>
+          <path d="m18 22-2-3"></path>
+          <circle cx="8" cy="15" r="1"></circle>
+          <circle cx="16" cy="15" r="1"></circle>
+        </svg>
+      </div>
+      <div class="brand-title-group">
+        <h1>
+          BR Ticket Helper
+          <span class="version-pill">v1.0</span>
+        </h1>
+        <p class="brand-subtitle">Smart Assistant for Bangladesh Railway</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <button type="button" id="theme-toggle" class="icon-toggle-btn" title="Toggle Light / Dark Theme" aria-label="Toggle Light / Dark Theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+      <a href="#" id="open-options" class="header-action-btn" title="Open Settings & Automation Options">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Settings
+      </a>
+    </div>
+  </header>
+
+  <form id="trip-form" novalidate>
+    <!-- Route Selection Card -->
+    <div class="card">
+      <div class="card-title">
+        <div class="title-left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+          Journey Route
+        </div>
+      </div>
+
+      <div class="route-container">
+        <div class="route-timeline" aria-hidden="true">
+          <div class="route-dot origin" title="Departure Station"></div>
+          <div class="route-line"></div>
+          <div class="route-dot destination" title="Arrival Station"></div>
+        </div>
+
+        <div class="route-fields">
+          <div class="input-with-label">
+            <label for="from">From Station</label>
+            <select id="from" class="station-select">
+              <option value="" disabled selected>Select departure station…</option>
+            </select>
+          </div>
+          <div class="input-with-label">
+            <label for="to">To Station</label>
+            <select id="to" class="station-select">
+              <option value="" disabled selected>Select destination station…</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="button" id="swap" class="route-swap-btn" title="Swap From and To stations" aria-label="Swap From and To stations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"></path>
+          </svg>
+        </button>
+      </div>
+      <p class="hint">Verified Bangladesh Railway station list — eliminates typos & misspelling.</p>
+    </div>
+
+    <!-- Date of Journey & Time Preferences Card -->
+    <div class="card">
+      <div class="card-title">
+        <div class="title-left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Date & Timing
+        </div>
+      </div>
+
+      <div class="date-time-grid">
+        <div class="input-with-label">
+          <label for="doj">Date of Journey</label>
+          <input type="date" id="doj">
+        </div>
+        <div class="input-with-label">
+          <label for="time-pref">Time Window</label>
+          <select id="time-pref">
+            <option value="any">Any Time</option>
+            <option value="morning">Morning (6 AM - 12 PM)</option>
+            <option value="afternoon">Afternoon (12 PM - 6 PM)</option>
+            <option value="evening">Evening (6 PM - 12 AM)</option>
+            <option value="night">Night (12 AM - 6 AM)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="date-chips" id="date-chips">
+        <button type="button" class="chip primary-chip" id="chip-tomorrow-release" title="Tickets releasing tomorrow at 8:00 AM">⭐ Tomorrow's 8 AM Release</button>
+        <button type="button" class="chip" id="chip-today-max" title="Furthest date bookable right now">Today's Max</button>
+        <button type="button" class="chip" id="chip-tomorrow">Tomorrow</button>
+        <button type="button" class="chip" id="chip-today">Today</button>
+      </div>
+      <div class="doj-status-hint" id="doj-hint"></div>
+    </div>
+
+    <!-- Class & Seats Priority Card -->
+    <div class="card">
+      <div class="card-title">
+        <div class="title-left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 9h-2V7a3 3 0 0 0-3-3H10a3 3 0 0 0-3 3v2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"></path>
+            <path d="M7 19v2"></path>
+            <path d="M17 19v2"></path>
+          </svg>
+          Class & Seat Priority
+        </div>
+      </div>
+
+      <div class="class-seats-row">
+        <div class="input-with-label">
+          <label for="cls">Desired Class (1st Priority)</label>
+          <select id="cls">
+            <option value="">Choose a class</option>
+          </select>
+        </div>
+        <div class="input-with-label">
+          <label for="seats">Seats</label>
+          <select id="seats">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Fallback Class Preference Hierarchy -->
+      <div class="fallback-section">
+        <div class="fallback-header">
+          <label>Fallback Classes (Preference Order)</label>
+          <button type="button" id="add-fallback-btn" class="add-fallback-chip" title="Add another fallback class choice">+ Add Fallback</button>
+        </div>
+        <div id="fallback-list" class="fallback-list"></div>
+        <p class="hint" id="fallback-hint">If 1st choice is sold out, the helper auto-tries 2nd priority, then 3rd.</p>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <label for="trains">Preferred Trains <span class="label-hint">(optional)</span></label>
+        <input id="trains" autocomplete="off" placeholder="e.g. Suborno Express, 701, Sonar Bangla">
+        <p class="hint">Name or train number in preference order, comma-separated. Leave blank for any train.</p>
+      </div>
+
+      <ul class="errors" id="errors" role="alert"></ul>
+      <p class="ready" id="ready" hidden></p>
+    </div>
+  </form>
+
+  <!-- Immediate Search Actions -->
+  <div class="actions">
+    <button type="button" id="search" class="primary" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      Search Trains
+    </button>
+    <button type="button" id="go-login">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+        <polyline points="10 17 15 12 10 7"></polyline>
+        <line x1="15" y1="12" x2="3" y2="12"></line>
+      </svg>
+      Open Login Page
+    </button>
+  </div>
+
+  <!-- 8:00 AM Automated Release Scheduler Card -->
+  <div class="schedule-box">
+    <div class="schedule-header">
+      <label for="schedule-time">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;color:var(--brand-primary)">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        Schedule Auto-Start (8:00 AM Engine)
+      </label>
+      <span class="schedule-badge" id="schedule-active-badge" hidden>Active</span>
+    </div>
+    <p class="hint">Leave browser open overnight. The extension automatically opens the train search and triggers booking the exact moment tickets release.</p>
+
+    <label class="check auto-release-check">
+      <input type="checkbox" id="auto-newest-date">
+      <span>Auto-target newest released date (+10 days on scheduled run)</span>
+    </label>
+
+    <div class="schedule-row">
+      <input type="time" id="schedule-time" aria-label="Schedule execution time">
+      <button type="button" id="schedule-btn" class="primary">Schedule</button>
+      <button type="button" id="cancel-schedule-btn" class="danger" hidden>Cancel</button>
+    </div>
+    <p id="schedule-status" class="status"></p>
+    <div class="sleep-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>Keep PC awake (disable Windows Sleep / Hibernate) so Chrome stays running overnight.</span>
+    </div>
+  </div>
+
+  <!-- Status Footer -->
+  <footer>
+    <span class="footer-login-tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <span id="login-state"></span>
+    </span>
+    <span class="footer-status-tag">
+      <span id="status"></span>
+    </span>
+  </footer>
+
+  <script src="shared.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

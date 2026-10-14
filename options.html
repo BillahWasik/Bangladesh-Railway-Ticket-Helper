@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BR Ticket Helper - Settings & Automation</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="options">
+  <!-- Hero Header -->
+  <header class="options-hero">
+    <div class="options-hero-title">
+      <div class="brand-icon" style="width: 38px; height: 38px; border-radius: 10px;" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
+          <rect x="4" y="3" width="16" height="16" rx="2"></rect>
+          <path d="M4 11h16"></path>
+          <path d="M12 3v8"></path>
+          <path d="m8 19-2 3"></path>
+          <path d="m18 22-2-3"></path>
+          <circle cx="8" cy="15" r="1"></circle>
+          <circle cx="16" cy="15" r="1"></circle>
+        </svg>
+      </div>
+      <div>
+        <h1>Settings & Automation Center</h1>
+        <p>Configure automated login, high-speed booking, and retry preferences</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" id="theme-toggle" class="icon-toggle-btn" title="Toggle Light / Dark Theme" aria-label="Toggle Light / Dark Theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+      <span class="version-pill" style="font-size: 11px; padding: 3px 8px;">BR Ticket Helper v1.0</span>
+    </div>
+  </header>
+
+  <form id="login-form" novalidate>
+    <!-- Section 1: Account & Credentials -->
+    <section class="options-section">
+      <div class="options-section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <h2>Railway Account & Auto-Login</h2>
+      </div>
+
+      <div class="note">
+        <strong>🔒 Security & Privacy Notice:</strong> Credentials are saved exclusively inside your local Chrome profile storage and are never uploaded to any remote server. Leave the password blank if you prefer Chrome's built-in password autofill.
+      </div>
+
+      <div class="options-grid">
+        <div>
+          <label for="mobile">Mobile Number (BD Phone)</label>
+          <input id="mobile" type="tel" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="off">
+          <p class="hint">11-digit mobile number registered on Bangladesh Railway portal.</p>
+        </div>
+
+        <div>
+          <label for="password">Password <span class="label-hint">(optional)</span></label>
+          <div class="password-row">
+            <input id="password" type="password" autocomplete="off" placeholder="••••••••">
+            <button type="button" id="toggle-password" aria-label="Toggle password visibility">Show</button>
+          </div>
+          <p class="hint">Stored in local Chrome storage to automate login.</p>
+        </div>
+      </div>
+
+      <label class="check" style="margin-top: 16px;">
+        <input type="checkbox" id="auto-click" checked>
+        <span>
+          <strong>Auto-submit Login</strong> once Cloudflare Turnstile challenge passes.
+          <br><span class="hint">If Cloudflare requests manual interactive verification, the helper pauses and waits for you.</span>
+        </span>
+      </label>
+    </section>
+
+    <!-- Section 2: Automated Booking Rules -->
+    <section class="options-section">
+      <div class="options-section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polygon points="10 8 16 12 10 16 10 8"></polygon>
+        </svg>
+        <h2>Automated Booking & Seat Selection</h2>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="auto-book-now" checked>
+        <span>
+          Click <strong>BOOK NOW</strong> automatically on the best matching train.
+          <br><span class="hint">Triggers only once immediately following a popup search. Safe: page refreshes or date navigation will not re-click.</span>
+        </span>
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="auto-pick-seats" checked>
+        <span>
+          Auto-select seats on the coach seat map (holds them instantly for you).
+          <br><span class="hint">Applies your seat count, position preference, and together rules.</span>
+        </span>
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="auto-continue-purchase" checked>
+        <span>
+          Click <strong>CONTINUE PURCHASE</strong> automatically once all requested seats are selected.
+          <br><span class="hint">Instantly advances to passenger review and payment page to lock in your booking.</span>
+        </span>
+      </label>
+
+      <div class="options-grid" style="margin-top: 18px;">
+        <div>
+          <label for="seat-position">Seat Position Preference</label>
+          <select id="seat-position">
+            <option value="window">Window</option>
+            <option value="aisle">Aisle</option>
+            <option value="any">No preference (Fastest)</option>
+          </select>
+          <p class="hint">Preferred seating layout when choosing seats.</p>
+        </div>
+
+        <div>
+          <label for="preferred-coaches">Preferred Coaches <span class="label-hint">(optional)</span></label>
+          <input id="preferred-coaches" autocomplete="off" placeholder="e.g. CHA, JA, KHA">
+          <p class="hint">Coach letters in order of priority, comma-separated. Blank = first available coach.</p>
+        </div>
+      </div>
+
+      <label class="check" style="margin-top: 14px;">
+        <input type="checkbox" id="seats-together" checked>
+        <span>
+          <strong>Keep seats together</strong> in adjacent slots when booking 2 or more seats.
+        </span>
+      </label>
+
+      <label class="check" style="margin-top: 14px;">
+        <input type="checkbox" id="split-coaches" checked>
+        <span>
+          <strong>Smart Multi-Coach Split:</strong> If no single coach has enough seats, divide seats across coaches (2+2 for 4 seats, 2+1 for 3 seats, 1+1 for 2 seats).
+          <br><span class="hint">Keeps seats as close together as possible across bogies instead of failing when seats are scattered.</span>
+        </span>
+      </label>
+    </section>
+
+    <!-- Section 3: Monitoring & Hold Timers -->
+    <section class="options-section">
+      <div class="options-section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <h2>Auto-Retry & Seat-Hold Alert Timers</h2>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="auto-refresh">
+        <span>
+          <strong>Continuous Retry Mode:</strong> Auto-reload train list if tickets are currently unavailable.
+          <br><span class="hint">Automatically clicks BOOK NOW on the retry that catches released or cancelled seats.</span>
+        </span>
+      </label>
+
+      <div class="options-grid" style="margin-top: 16px;">
+        <div>
+          <label for="refresh-secs">Retry Interval (Seconds)</label>
+          <input id="refresh-secs" type="number" min="2" max="120" placeholder="5">
+          <p class="hint">Interval between reloads (randomized ±20% to emulate human pacing). Min: 2s.</p>
+        </div>
+
+        <div>
+          <label for="max-refreshes">Stop Retry After (Attempts)</label>
+          <input id="max-refreshes" type="number" min="0" max="1000" placeholder="100">
+          <p class="hint">Maximum reload attempts before pausing. 0 = keep retrying indefinitely.</p>
+        </div>
+
+        <div>
+          <label for="hold-minutes">Seat-Hold Countdown Timer (Minutes)</label>
+          <input id="hold-minutes" type="number" min="0" max="30" placeholder="5">
+          <p class="hint">Floating timer alert with audio beeps at 60s and 30s remaining. 0 = disabled.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Payment Gateway Preference -->
+    <section class="options-section">
+      <div class="options-section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+          <line x1="2" y1="10" x2="22" y2="10"></line>
+        </svg>
+        <h2>Preferred Payment Gateway</h2>
+      </div>
+
+      <div style="max-width: 380px;">
+        <label for="preferred-payment">Default Payment Method</label>
+        <select id="preferred-payment">
+          <option value="">None (I will choose manually)</option>
+          <option value="bkash">bKash</option>
+          <option value="nagad">Nagad</option>
+          <option value="rocket">Rocket</option>
+          <option value="upay">Upay</option>
+          <option value="dbbl_nexus">DBBL Nexus</option>
+          <option value="visa">Visa / Mastercard</option>
+        </select>
+        <p class="hint">Auto-selects your preferred payment gateway on the checkout page.</p>
+      </div>
+    </section>
+
+    <!-- Section 5: Post-Login Automation -->
+    <section class="options-section">
+      <div class="options-section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <h2>Terms & Disclaimer Automation</h2>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="accept-disclaimer">
+        <span>
+          Click <strong>I AGREE</strong> on Bangladesh Railway Disclaimer modal automatically.
+          <br><span class="hint">Confirms you have reviewed and accepted the railway Terms and Conditions.</span>
+        </span>
+      </label>
+    </section>
+
+    <!-- Sticky Bottom Action Bar -->
+    <div class="options-action-bar">
+      <div>
+        <p class="status" id="status" role="status"></p>
+      </div>
+      <div class="actions">
+        <button type="button" id="clear" class="danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Clear Saved Login
+        </button>
+        <button type="submit" class="primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <script src="shared.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

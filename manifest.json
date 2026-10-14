@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "BR Ticket Helper",
+  "version": "1.0.0",
+  "description": "Personal helper for eticket.railway.gov.bd: remembers your trip and login. You confirm, enter the OTP and pay yourself.",
+  "permissions": ["storage", "alarms", "tabs"],
+  "host_permissions": ["https://eticket.railway.gov.bd/*"],
+  "action": {
+    "default_title": "BR Ticket Helper",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://eticket.railway.gov.bd/*"],
+      "js": ["shared.js", "content/badge.js", "content/login.js", "content/results.js", "content/disclaimer.js", "content/seatpick.js", "content/seatmap.js", "content/hold.js", "content/payment.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
