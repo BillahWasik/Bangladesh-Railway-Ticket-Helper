@@ -12,7 +12,7 @@
   const SEAT_CLICK_WAIT_MS = 10 * 1000;
   const MAX_COOLDOWN_S = 5 * 60;
   const COOLDOWN_BUFFER_S = 2;
-  const POSITION_TEXT = { window: 'window ', aisle: 'aisle ', any: '' };
+  const POSITION_TEXT = { window: 'window ', aisle: 'aisle ', lower_berth: 'lower berth ', upper_berth: 'upper berth ', any: '' };
   const TOGETHER_TEXT = {
     'same row': 'Same row, across the aisle.',
     near: 'In neighbouring rows.',
@@ -139,7 +139,7 @@
       autoSelecting = false;
       takeSeatArm(card); // nothing left to select: use up permission
       clearHighlight();
-      handOff(layout, allSelected, lines, settings);
+      handOff(layout, allSelected, lines, settings, rules);
       render(lines, 'info');
       return;
     }
@@ -180,7 +180,7 @@
       autoSelecting = false;
       takeSeatArm(card);
       clearHighlight();
-      handOff(layout, allSelected, lines, settings);
+      handOff(layout, allSelected, lines, settings, rules);
       render(lines, 'info');
       return;
     }
@@ -256,11 +256,15 @@
     else if (!selectedCount && holdStart && !picking) await chrome.storage.local.remove('holdStart');
   }
 
-  // 2e: all seats selected. Point at the Boarding Station and CONTINUE PURCHASE and stop there:
-  // the user clicks CONTINUE PURCHASE, then enters the OTP and pays.
-  function handOff(layout, selected, lines, settings) {
+  // 2e: all seats selected. If autoContinuePurchase is enabled, automatically click CONTINUE PURCHASE
+  // to advance to the OTP and payment page. Otherwise, highlight the Boarding Station and CONTINUE PURCHASE
+  // button and pause so the user can inspect which seats were booked.
+  function handOff(layout, selected, lines, settings, rules) {
     const boarding = layout.querySelector('select#boardingpoint');
-    const proceed = layout.querySelector('button.continue-btn');
+    const proceed = layout.querySelector('button.continue-btn') ||
+      Array.from(layout.querySelectorAll('button')).find((b) => /continue\s*(purchase)?/i.test(b.textContent.trim())) ||
+      layout.querySelector('.continue-btn');
+
     boarding?.classList.add('brth-next');
     proceed?.classList.add('brth-next');
 
@@ -269,9 +273,18 @@
       const choices = boarding.options.length;
       lines.push(`Boarding Station: ${stop}${choices > 1 ? ` (${choices} to choose from; check it's yours)` : ''}.`);
     }
-    lines.push(proceed
-      ? 'Next: click CONTINUE PURCHASE (highlighted in green). Then you enter the OTP and pay.'
-      : 'Next: continue the purchase on the page.');
+
+    const autoPurchase = (rules?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true) !== false;
+
+    if (autoPurchase) {
+      lines.push(proceed
+        ? 'All seats selected! Proceeding to CONTINUE PURCHASE for OTP & payment…'
+        : 'Next: continue the purchase on the page.');
+    } else {
+      lines.push(proceed
+        ? 'All seats selected! Direct purchase is OFF: check your seats above, then click CONTINUE PURCHASE (highlighted in green).'
+        : 'All seats selected! Review your seats, then continue purchase on the page.');
+    }
 
     // Scroll once per finished selection, not on every page update.
     const key = selected.map((s) => s.label || s).join(',');
@@ -279,11 +292,32 @@
       handedOff = key;
       proceed.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
-      if (settings?.autoContinuePurchase !== false) {
+      if (autoPurchase) {
         lines.push('Clicking CONTINUE PURCHASE for you...');
-        setTimeout(() => proceed.click(), 500);
+        clickProceedSafely(proceed);
+      } else {
+        lines.push('Direct purchase is paused — check your seats above and click CONTINUE PURCHASE when ready.');
       }
     }
+  }
+
+  function clickProceedSafely(proceed) {
+    let attempts = 0;
+    const maxAttempts = 20; // up to 5 seconds
+    const tryClick = () => {
+      if (!proceed || !proceed.isConnected) return;
+      const isDisabled = proceed.disabled ||
+        proceed.getAttribute('aria-disabled') === 'true' ||
+        proceed.classList.contains('disabled');
+      if (isDisabled) {
+        if (++attempts < maxAttempts) {
+          setTimeout(tryClick, 250);
+        }
+        return;
+      }
+      proceed.click();
+    };
+    setTimeout(tryClick, 400);
   }
 
   // True (once) if results.js armed seat selection for this train and class moments ago.
@@ -462,6 +496,11 @@
       const aisleSide = (s.half !== halves[halves.length - 1] && s.col === Math.max(...cols)) ||
         (s.half !== halves[0] && s.col === Math.min(...cols));
       s.position = s.col === first || s.col === last ? 'window' : aisleSide ? 'aisle' : 'middle';
+
+      const numMatch = (s.label || '').match(/\d+/);
+      const seatNum = numMatch ? Number(numMatch[0]) : null;
+      // In Bangladesh Railway sleeper/berth coaches, odd numbers are standard lower berths, even are upper
+      s.isLower = seatNum !== null ? (seatNum % 2 === 1) : (s.row % 2 === 0);
     }
     return seats;
   }

@@ -86,7 +86,30 @@
     const trains = readTrains();
     const listText = trains.length ? '' : document.getElementById('search_list_sec')?.textContent ?? '';
     const noTrains = !trains.length && listText.includes(NO_TRAINS_TEXT);
-    if (!trains.length && !noTrains) return; // list still loading
+
+    const { trip, settings } = await BRTH.load(['trip', 'settings']);
+
+    // Server congestion & 503 crash auto-recovery check
+    if (!trains.length && !noTrains) {
+      const pageText = (document.body.innerText || '').toLowerCase();
+      const serverCrashKeywords = [
+        'something went wrong',
+        'internal server error',
+        'service unavailable',
+        '503 service',
+        '504 gateway',
+        'error occurred while fetching',
+        'failed to load resource',
+      ];
+      const isCrash = serverCrashKeywords.some((kw) => pageText.includes(kw));
+      if (isCrash && (settings?.serverErrorRetry !== false || settings?.autoRefresh)) {
+        clearHighlight();
+        render('⚠️ Server congestion / error detected. Auto-recovering in 3s…', 'warn');
+        setTimeout(() => location.reload(), 3000);
+        return;
+      }
+      return; // list still loading
+    }
 
     // The pop-up's Search click is used up by the first finished list it opens, whatever is on it.
     let armed = false;
@@ -106,7 +129,6 @@
       await rememberStations(query.from, query.to);
     }
 
-    const { trip, settings } = await BRTH.load(['trip', 'settings']);
     const validTrains = trains.filter(t => matchesTimePref(t, trip?.timePref));
     const prefs = BRTH.parseTrainPrefs(trip?.trains);
     const { candidates, unmatched } = orderByPreference(validTrains, prefs);
@@ -183,7 +205,11 @@
     if (prefs.length && unmatched.length) lines.push('', `Not running on this date: ${unmatched.join(', ')}`);
     
     if (pick) {
+      const wasRefreshing = readRefreshCount().n > 0;
       clearRefreshCount();
+      if (wasRefreshing && BRTH.playChime && settings?.soundAlerts !== false) {
+        BRTH.playChime('seatFound');
+      }
     } else {
       if (settings?.autoRefresh) {
         lines.push('', scheduleRefresh(settings));

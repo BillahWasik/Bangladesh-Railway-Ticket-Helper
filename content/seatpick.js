@@ -23,7 +23,12 @@ const BRTHSeats = (() => {
     const free = seats.filter((s) => s.available);
     if (free.length < count) return null;
 
-    const fit = (s) => (rules.position === 'any' || s.position === rules.position ? 0 : 1);
+    const fit = (s) => {
+      if (rules.position === 'any' || !rules.position) return 0;
+      if (rules.position === 'lower_berth') return s.isLower ? 0 : 1;
+      if (rules.position === 'upper_berth') return (s.isLower === false) ? 0 : 1;
+      return s.position === rules.position ? 0 : 1;
+    };
     const front = (a, b) => a.row - b.row || a.col - b.col;
     const byRule = (a, b) => fit(a) - fit(b) || front(a, b);
 

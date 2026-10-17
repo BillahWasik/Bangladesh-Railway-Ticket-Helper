@@ -405,6 +405,7 @@ const BRTH = (() => {
       together: settings?.seatsTogether ?? true,
       coaches: parseTrainPrefs(settings?.preferredCoaches), // same "a, b" format, lower-cased
       splitCoaches: settings?.splitCoaches ?? true,
+      autoContinuePurchase: trip?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true,
     };
   }
 
@@ -467,5 +468,186 @@ const BRTH = (() => {
     }
   }
 
-  return { SITE, CLASSES, KNOWN_STATIONS, TOP_STATIONS, STATION_LABELS, stationLabel, canonicalStation, BOOKING_WINDOW_DAYS, today, toIso, fromIso, addDays, bookingWindow, isInWindow, releaseDateFor, tomorrowReleaseDate, todayMaxDate, toSiteDate, toShortDate, searchPath, parseTrainPrefs, seatRules, siteAlertText, cooldownSeconds, dismissSiteAlert, countdown, load, save, initTheme };
+  // Intercity stations belonging to the Eastern Zone (release daily at 2:00 PM / 14:00)
+  // All other routes belong to the Western Zone (release daily at 8:00 AM / 08:00)
+  const EASTERN_STATIONS = [
+    'chattogram', "cox's bazar", 'sylhet', 'sreemangal', 'cumilla', 'feni', 'brahmanbaria',
+    'noakhali', 'chandpur', 'bhairab_bazar', 'akhaura', 'mymensingh', 'jamalpur_town',
+    'kishoreganj', 'netrokona', 'mohanganj', 'tarakandi', 'sarishabari', 'dewanganj_bazar',
+    'bajitpur', 'kulaura', 'shamshernagar', 'maizgaon', 'comilla', 'gunabati',
+    'feni_junction', 'sitakundu', 'pahartali', 'dohazari', 'harbang', 'chakaria', 'ramu',
+    'ashuganj', 'baramchal', 'bhanugach', 'chhatak_bazar', 'laksham', 'laksam',
+    'maiidee_court', 'maijdi_court', 'shorishabari', 'bb_east'
+  ];
+
+  function detectRouteZone(fromStation, toStation) {
+    const f = (fromStation || '').toLowerCase().replace(/\s+/g, '_');
+    const t = (toStation || '').toLowerCase().replace(/\s+/g, '_');
+    
+    // Check if either destination or origin is an Eastern Zone hub
+    const isEastern = EASTERN_STATIONS.some((s) => f.includes(s) || t.includes(s));
+    
+    if (isEastern) {
+      return {
+        zone: 'eastern',
+        time: '14:00',
+        name: 'Eastern Zone',
+        dropTimeStr: '2:00 PM (14:00)',
+        badge: '☀️ Eastern Zone (2:00 PM Drop)',
+      };
+    }
+    return {
+      zone: 'western',
+      time: '08:00',
+      name: 'Western Zone',
+      dropTimeStr: '8:00 AM (08:00)',
+      badge: '🌅 Western Zone (8:00 AM Drop)',
+    };
+  }
+
+  // Web Audio chime generator for seat availability, OTP arrival, and alerts
+  function playChime(type = 'seatFound') {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      if (type === 'seatFound') {
+        // High upbeat 4-note ascending chime: C5 (523), E5 (659), G5 (784), C6 (1046)
+        const notes = [523.25, 659.25, 784.00, 1046.50];
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.11);
+          gain.gain.setValueAtTime(0.22, ctx.currentTime + i * 0.11);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.11 + 0.35);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.11);
+          osc.stop(ctx.currentTime + i * 0.11 + 0.35);
+        });
+        setTimeout(() => ctx.close(), notes.length * 110 + 400);
+      } else if (type === 'otp') {
+        // Attention double-ding: E5 (659Hz) and B5 (987Hz)
+        const notes = [659.25, 987.77];
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.14);
+          gain.gain.setValueAtTime(0.28, ctx.currentTime + i * 0.14);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.14 + 0.38);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.14);
+          osc.stop(ctx.currentTime + i * 0.14 + 0.38);
+        });
+        setTimeout(() => ctx.close(), 700);
+      } else {
+        // Simple alert beep
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+        setTimeout(() => ctx.close(), 300);
+      }
+    } catch { /* AudioContext restricted before gesture */ }
+  }
+
+  // Official Weekly Off-Days for Bangladesh Railway intercity trains
+  // day: 0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat
+  const TRAIN_OFF_DAYS = {
+    'suborno': { day: 1, name: 'Monday' },
+    'suborno express': { day: 1, name: 'Monday' },
+    'sonar bangla': { day: 3, name: 'Wednesday' },
+    'sonar bangla express': { day: 3, name: 'Wednesday' },
+    'cox\'s bazar': { day: 1, name: 'Monday' },
+    'cox\'s bazar express': { day: 1, name: 'Monday' },
+    'tourist': { day: 0, name: 'Sunday' },
+    'tourist express': { day: 0, name: 'Sunday' },
+    'parabat': { day: 2, name: 'Tuesday' },
+    'parabat express': { day: 2, name: 'Tuesday' },
+    'padma': { day: 2, name: 'Tuesday' },
+    'padma express': { day: 2, name: 'Tuesday' },
+    'silkcity': { day: 0, name: 'Sunday' },
+    'silkcity express': { day: 0, name: 'Sunday' },
+    'dhumketu': { day: 4, name: 'Thursday' },
+    'dhumketu express': { day: 4, name: 'Thursday' },
+    'bonolota': { day: 5, name: 'Friday' },
+    'bonolota express': { day: 5, name: 'Friday' },
+    'kalni': { day: 5, name: 'Friday' },
+    'kalni express': { day: 5, name: 'Friday' },
+    'jayantik': { day: 2, name: 'Tuesday' },
+    'jayantik express': { day: 2, name: 'Tuesday' },
+    'upaban': { day: 3, name: 'Wednesday' },
+    'upaban express': { day: 3, name: 'Wednesday' },
+    'mohonogor provati': { day: 0, name: 'Sunday' },
+    'mohonogor godhuli': { day: 1, name: 'Monday' },
+    'mohonogor express': { day: 0, name: 'Sunday' },
+    'chattala': { day: 5, name: 'Friday' },
+    'chattala express': { day: 5, name: 'Friday' },
+    'bijoy': { day: 3, name: 'Wednesday' },
+    'bijoy express': { day: 3, name: 'Wednesday' },
+    'paharika': { day: 1, name: 'Monday' },
+    'paharika express': { day: 1, name: 'Monday' },
+    'udayan': { day: 0, name: 'Sunday' },
+    'udayan express': { day: 0, name: 'Sunday' },
+    'drutojan': { day: 3, name: 'Wednesday' },
+    'drutojan express': { day: 3, name: 'Wednesday' },
+    'ekota': { day: 2, name: 'Tuesday' },
+    'ekota express': { day: 2, name: 'Tuesday' },
+    'lalmoni': { day: 5, name: 'Friday' },
+    'lalmoni express': { day: 5, name: 'Friday' },
+    'kurigram': { day: 3, name: 'Wednesday' },
+    'kurigram express': { day: 3, name: 'Wednesday' },
+    'rangpur': { day: 1, name: 'Monday' },
+    'rangpur express': { day: 1, name: 'Monday' },
+    'chitra': { day: 1, name: 'Monday' },
+    'chitra express': { day: 1, name: 'Monday' },
+    'sundarban': { day: 2, name: 'Tuesday' },
+    'sundarban express': { day: 2, name: 'Tuesday' },
+    'benapole': { day: 3, name: 'Wednesday' },
+    'benapole express': { day: 3, name: 'Wednesday' },
+    'modhumoti': { day: 4, name: 'Thursday' },
+    'modhumoti express': { day: 4, name: 'Thursday' },
+    'tista': { day: 1, name: 'Monday' },
+    'tista express': { day: 1, name: 'Monday' },
+    'burimari': { day: 2, name: 'Tuesday' },
+    'burimari express': { day: 2, name: 'Tuesday' },
+    'kishoreganj': { day: 5, name: 'Friday' },
+    'kishoreganj express': { day: 5, name: 'Friday' },
+    'egarosindhur godhuli': { day: 3, name: 'Wednesday' },
+    'egarosindhur provati': { day: 3, name: 'Wednesday' },
+  };
+
+  function checkTrainOffDay(trainPrefsStr, dojIso) {
+    if (!trainPrefsStr || !dojIso) return null;
+    const d = fromIso(dojIso);
+    if (!d) return null;
+    const dayOfWeek = d.getDay();
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const prefs = parseTrainPrefs(trainPrefsStr);
+
+    for (const pref of prefs) {
+      for (const [trainKey, info] of Object.entries(TRAIN_OFF_DAYS)) {
+        if (!info) continue;
+        if (pref.includes(trainKey) || trainKey.includes(pref)) {
+          if (info.day === dayOfWeek) {
+            return {
+              train: pref.toUpperCase(),
+              dayName: info.name,
+              journeyDay: DAYS[dayOfWeek],
+              message: `⚠️ ${pref.toUpperCase()} does not run on ${DAYS[dayOfWeek]}s (Weekly Off-Day)!`,
+            };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  return { SITE, CLASSES, KNOWN_STATIONS, TOP_STATIONS, EASTERN_STATIONS, TRAIN_OFF_DAYS, STATION_LABELS, stationLabel, canonicalStation, BOOKING_WINDOW_DAYS, today, toIso, fromIso, addDays, bookingWindow, isInWindow, releaseDateFor, tomorrowReleaseDate, todayMaxDate, toSiteDate, toShortDate, searchPath, parseTrainPrefs, checkTrainOffDay, seatRules, siteAlertText, cooldownSeconds, dismissSiteAlert, countdown, load, save, initTheme, detectRouteZone, playChime };
 })();

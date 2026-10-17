@@ -5,12 +5,20 @@ A high-performance Google Chrome extension (Manifest V3) designed to streamline 
 ## Key Features
 
 - **Emerald Transit UI Design System**: Built with modern CSS design tokens supporting both crisp Light Mode and Obsidian Dark Mode.
-- **Smart Station Picker**: Comprehensive verified dropdown of 137 Bangladesh Railway stations categorized into `★ Popular Hubs` and alphabetical stations, preventing misspelled search parameters.
-- **Dynamic Multi-Coach Seat Partitioning**: When a single coach doesn't have enough seats (e.g. 4 seats needed but coaches only have 2 or 3), mathematically splits seats across coaches (e.g. 2+2, 2+1, 1+1) and automatically switches coaches during seat selection.
-- **8:00 AM Automated Booking Scheduler**: Alarms API integration to pre-arm and auto-launch search queries at the exact 8:00 AM ticket release window.
-- **Fallback Class Priority Matrix**: Define primary class (e.g. `SNIGDHA`) and fallback priority order (e.g. `S_CHAIR`, `AC_B`) so available seats are never missed.
-- **Auto-Refresh & Hold Protections**: Automatically refreshes train search listings when seats are sold out, and tracks seat hold cooldown timers.
-- **Gateway Auto-Selection**: Pre-selects preferred payment gateways (bKash, Nagad, Rocket, Cards) upon reaching the checkout stage.
+- **Live Drop Countdown HUD**: High-frequency millisecond countdown display synchronized with real-time **Bangladesh Standard Time (BST)**, showing exact time until the next 8:00 AM / 2:00 PM ticket drop or active schedule.
+- **Smart Station Picker & Favorite Routes**: Comprehensive verified dropdown of 137 Bangladesh Railway stations categorized into `★ Popular Hubs` and alphabetical stations, with 1-click popular route presets (*Dhaka ⇄ Cox's Bazar*, *Dhaka ⇄ Chattogram*, *Dhaka ⇄ Sylhet*, *Dhaka ⇄ Rajshahi*).
+- **Dual-Zone Ticket Drop Engine (8 AM Western & 2 PM Eastern)**: Automatically detects whether your route belongs to the Eastern Zone (2:00 PM release) or Western Zone (8:00 AM release) and presets the exact drop time.
+- **Train Weekly Off-Day (ছুটির দিন) Smart Detector**: Warns you immediately if a preferred train (e.g. Suborno, Sonar Bangla, Cox's Bazar Express, Bonolota, Kalni, etc.) has its official weekly off-day on your selected journey date.
+- **Sleeper Berth Preferences**: Select between Lower Berth (preferential for elderly/children) or Upper Berth on overnight sleeper trains.
+- **Co-Passenger Autofill Manager**: Saves travel companion names and passenger types (Adult/Child) in settings to instantly auto-fill passenger fields (Seats 2, 3, 4) at checkout.
+- **Direct Purchase Mode**: Configurable checkbox toggle to either automatically advance through checkout to OTP/payment or hold seats to inspect them before purchasing.
+- **OTP Assistant & Auto-Submit**: Detects OTP arrival, plays an attention chime, focuses the OTP field, and automatically triggers submission once 6 digits are entered.
+- **Web Audio Chimes**: Melodic sound alerts for available seat discovery during auto-refresh, OTP arrival, and booking completion.
+- **Desktop Push Notifications**: Chrome desktop notifications (`chrome.notifications`) alert you even when Chrome is minimized or in another window.
+- **Anti-Logout Session Keep-Alive**: Background heartbeat pings the railway portal every 4 minutes to prevent idle session logouts right before 8 AM / 2 PM drops.
+- **Dynamic Multi-Coach Seat Partitioning**: When a single coach doesn't have enough seats, mathematically splits seats across coaches (2+2, 2+1, 1+1) and automatically switches bogies.
+- **1-Click Profile Backup & Restore**: Export your complete configuration (login, co-passengers, payment gateways, preferences) to an encrypted JSON file and import it anytime.
+- **Payment Gateway Auto-Advance**: Pre-selects preferred payment gateways (bKash, Nagad, Rocket, Cards) and advances into checkout without delay.
 
 ## Project Structure
 

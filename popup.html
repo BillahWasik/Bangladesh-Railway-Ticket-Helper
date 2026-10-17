@@ -65,6 +65,13 @@
         </div>
       </div>
 
+      <div class="favorite-routes" id="favorite-routes">
+        <button type="button" class="route-chip" data-from="Dhaka" data-to="Cox's Bazar">Dhaka ⇄ Cox's Bazar</button>
+        <button type="button" class="route-chip" data-from="Dhaka" data-to="Chattogram">Dhaka ⇄ Chattogram</button>
+        <button type="button" class="route-chip" data-from="Dhaka" data-to="Sylhet">Dhaka ⇄ Sylhet</button>
+        <button type="button" class="route-chip" data-from="Dhaka" data-to="Rajshahi">Dhaka ⇄ Rajshahi</button>
+      </div>
+
       <div class="route-container">
         <div class="route-timeline" aria-hidden="true">
           <div class="route-dot origin" title="Departure Station"></div>
@@ -128,7 +135,7 @@
       </div>
 
       <div class="date-chips" id="date-chips">
-        <button type="button" class="chip primary-chip" id="chip-tomorrow-release" title="Tickets releasing tomorrow at 8:00 AM">⭐ Tomorrow's 8 AM Release</button>
+        <button type="button" class="chip primary-chip" id="chip-tomorrow-release" title="Tickets releasing tomorrow">⭐ Tomorrow's Release</button>
         <button type="button" class="chip" id="chip-today-max" title="Furthest date bookable right now">Today's Max</button>
         <button type="button" class="chip" id="chip-tomorrow">Tomorrow</button>
         <button type="button" class="chip" id="chip-today">Today</button>
@@ -183,6 +190,36 @@
         <p class="hint">Name or train number in preference order, comma-separated. Leave blank for any train.</p>
       </div>
 
+      <!-- Direct Purchase Checkbox Toggle -->
+      <label class="check auto-purchase-toggle" style="margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--border-subtle);">
+        <input type="checkbox" id="auto-continue-purchase" checked>
+        <span>
+          <strong>Direct Purchase</strong>: Auto-click Purchase button after selecting seats
+          <br><span class="hint">Ticked: automatically advances to OTP page. Unticked: holds seats so you can inspect which seats were booked before purchasing.</span>
+        </span>
+      </label>
+
+      <!-- Co-Passenger Quick Indicator -->
+      <div class="passenger-quick-status" id="passenger-quick-status" style="margin-top: 9px; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--fg-muted);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;color:var(--brand-primary);flex-shrink:0;">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span id="passenger-autofill-hint">Co-passengers: configured in Settings</span>
+      </div>
+
+      <!-- Train Weekly Off-Day Warning Banner -->
+      <div class="off-day-alert" id="off-day-alert" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;color:var(--warning-fg);">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span id="off-day-text"></span>
+      </div>
+
       <ul class="errors" id="errors" role="alert"></ul>
       <p class="ready" id="ready" hidden></p>
     </div>
@@ -207,7 +244,7 @@
     </button>
   </div>
 
-  <!-- 8:00 AM Automated Release Scheduler Card -->
+  <!-- Dual-Zone Automated Release Scheduler Card (8 AM / 2 PM Engine) -->
   <div class="schedule-box">
     <div class="schedule-header">
       <label for="schedule-time">
@@ -215,11 +252,41 @@
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
-        Schedule Auto-Start (8:00 AM Engine)
+        Automated Release Scheduler
       </label>
       <span class="schedule-badge" id="schedule-active-badge" hidden>Active</span>
     </div>
-    <p class="hint">Leave browser open overnight. The extension automatically opens the train search and triggers booking the exact moment tickets release.</p>
+    <p class="hint">Auto-launches train search & triggers booking the exact second tickets drop (8 AM Western or 2 PM Eastern Zone).</p>
+
+    <!-- Live Drop Countdown HUD (Clock Sync) -->
+    <div class="countdown-hud" id="countdown-hud">
+      <div class="countdown-hud-header">
+        <div class="live-indicator">
+          <span class="live-dot"></span>
+          <span class="live-text">BANGLADESH STANDARD TIME (BST)</span>
+        </div>
+        <span class="live-clock" id="live-bst-clock">--:--:--</span>
+      </div>
+      <div class="countdown-grid">
+        <div class="countdown-col"><span class="countdown-num" id="cd-hours">00</span><span class="countdown-lbl">HOURS</span></div>
+        <span class="countdown-col-sep">:</span>
+        <div class="countdown-col"><span class="countdown-num" id="cd-mins">00</span><span class="countdown-lbl">MINS</span></div>
+        <span class="countdown-col-sep">:</span>
+        <div class="countdown-col"><span class="countdown-num" id="cd-secs">00</span><span class="countdown-lbl">SECS</span></div>
+        <span class="countdown-col-sep">:</span>
+        <div class="countdown-col"><span class="countdown-num" id="cd-ms">00</span><span class="countdown-lbl">MS</span></div>
+      </div>
+      <div class="countdown-subtext" id="countdown-subtext">Calculating countdown to release…</div>
+    </div>
+
+    <!-- Zone Detection & Quick Switcher -->
+    <div class="zone-detection-box">
+      <span class="zone-pill" id="zone-detected-badge">🌅 Western Zone (8:00 AM)</span>
+      <div class="zone-quick-btn-group">
+        <button type="button" class="zone-toggle-btn active" id="btn-zone-8am" title="Preset Western Zone drop time (8:00 AM)">8:00 AM</button>
+        <button type="button" class="zone-toggle-btn" id="btn-zone-2pm" title="Preset Eastern Zone drop time (2:00 PM)">2:00 PM</button>
+      </div>
+    </div>
 
     <label class="check auto-release-check">
       <input type="checkbox" id="auto-newest-date">
@@ -238,7 +305,7 @@
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
-      <span>Keep PC awake (disable Windows Sleep / Hibernate) so Chrome stays running overnight.</span>
+      <span>Keep PC awake (disable Windows Sleep / Hibernate) so Chrome stays running.</span>
     </div>
   </div>
 

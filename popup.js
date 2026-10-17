@@ -1,10 +1,11 @@
 const $ = (id) => document.getElementById(id);
 const fields = {
-  from: $('from'), to: $('to'), doj: $('doj'), timePref: $('time-pref'), cls: $('cls'), seats: $('seats'), trains: $('trains'),
+  from: $('from'), to: $('to'), doj: $('doj'), timePref: $('time-pref'), cls: $('cls'), seats: $('seats'), trains: $('trains'), autoContinuePurchase: $('auto-continue-purchase'),
 };
 
 // Don't nag about empty fields until the user has started filling the form.
 let touched = false;
+let activeScheduleTimestamp = null;
 
 init();
 
@@ -29,13 +30,15 @@ async function init() {
 
   const {
     trip,
+    settings = {},
+    coPassengers = [],
     stations: searched = [],
     login,
     scheduleTargetTime,
     scheduleTargetTimestamp,
     scheduledPath,
     autoNewestDate = false,
-  } = await BRTH.load(['trip', 'stations', 'login', 'scheduleTargetTime', 'scheduleTargetTimestamp', 'scheduledPath', 'autoNewestDate']);
+  } = await BRTH.load(['trip', 'settings', 'coPassengers', 'stations', 'login', 'scheduleTargetTime', 'scheduleTargetTimestamp', 'scheduledPath', 'autoNewestDate']);
 
   // Populate From and To station dropdowns (Popular Hubs + All Stations A-Z)
   setupStationDropdowns(searched);
@@ -70,11 +73,67 @@ async function init() {
     fields.trains.value = trip.trains ?? '';
   }
 
+  // Favorite route preset chips
+  document.querySelectorAll('#favorite-routes .route-chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const fromVal = BRTH.canonicalStation(btn.dataset.from);
+      const toVal = BRTH.canonicalStation(btn.dataset.to);
+      ensureStationOption(fields.from, fromVal);
+      ensureStationOption(fields.to, toVal);
+      fields.from.value = fromVal;
+      fields.to.value = toVal;
+      updateZoneDetection(true);
+      onEdit();
+    });
+  });
+
+  // Dual-zone quick toggle buttons (8:00 AM Western vs 2:00 PM Eastern)
+  const btn8am = $('btn-zone-8am');
+  const btn2pm = $('btn-zone-2pm');
+  if (btn8am && btn2pm) {
+    btn8am.addEventListener('click', () => {
+      $('schedule-time').value = '08:00';
+      updateZoneToggleState('08:00');
+      render();
+    });
+    btn2pm.addEventListener('click', () => {
+      $('schedule-time').value = '14:00';
+      updateZoneToggleState('14:00');
+      render();
+    });
+  }
+
+  // Co-passenger status hint
+  const coCount = (coPassengers || []).filter((p) => p.name?.trim()).length;
+  const pHint = $('passenger-autofill-hint');
+  if (pHint) {
+    pHint.textContent = coCount > 0
+      ? `Co-passengers: ${coCount} saved for checkout auto-fill`
+      : 'Co-passengers: configure in Settings';
+  }
+
+  updateZoneDetection(false);
+
+  if (fields.autoContinuePurchase) {
+    fields.autoContinuePurchase.checked = trip?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true;
+  }
+
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.settings?.newValue?.autoContinuePurchase !== undefined) {
+      if (fields.autoContinuePurchase) {
+        fields.autoContinuePurchase.checked = changes.settings.newValue.autoContinuePurchase;
+        render();
+      }
+    }
+  });
+
   // Restore schedule UI if an alarm is actually active
   const alarm = await chrome.alarms.get('autoBookAlarm');
   if (alarm && scheduleTargetTime) {
+    activeScheduleTimestamp = scheduleTargetTimestamp || null;
     showScheduledState(scheduleTargetTime, scheduleTargetTimestamp, scheduledPath, autoNewestDate, trip?.doj);
   } else {
+    activeScheduleTimestamp = null;
     showUnscheduledState();
   }
 
@@ -121,6 +180,10 @@ async function init() {
       render();
     });
   }
+
+  // Start live BST clock and countdown HUD ticker
+  updateLiveCountdownHud();
+  setInterval(updateLiveCountdownHud, 65);
 }
 
 function setupDateChips(today) {
@@ -130,10 +193,12 @@ function setupDateChips(today) {
 
   const chipTomorrowRelease = $('chip-tomorrow-release');
   if (chipTomorrowRelease) {
-    chipTomorrowRelease.textContent = `⭐ Tomorrow's 8 AM Release (${BRTH.toShortDate(tomorrowRelease)})`;
+    updateReleaseChipLabel();
     chipTomorrowRelease.addEventListener('click', () => {
       fields.doj.value = BRTH.toIso(tomorrowRelease);
-      $('schedule-time').value = '08:00';
+      const zoneInfo = BRTH.detectRouteZone ? BRTH.detectRouteZone(fields.from.value, fields.to.value) : { time: '08:00' };
+      $('schedule-time').value = zoneInfo.time;
+      updateZoneToggleState(zoneInfo.time);
       if ($('auto-newest-date')) $('auto-newest-date').checked = false;
       onEdit();
     });
@@ -338,6 +403,7 @@ async function onSchedule() {
   const dojFormatted = BRTH.toSiteDate(dojForSchedule);
   const modeText = autoNewest ? `Auto-booking newest release: ${dojFormatted}` : `Target: ${dojFormatted}`;
 
+  activeScheduleTimestamp = target.getTime();
   showScheduledState(time, target.getTime(), path, autoNewest, dojForSchedule);
   $('schedule-status').textContent = `Scheduled for ${time} ${dayLabel} (${modeText}). Leave your browser open!`;
   $('schedule-status').classList.remove('error');
@@ -346,6 +412,7 @@ async function onSchedule() {
 async function onCancelSchedule() {
   await chrome.alarms.clear('autoBookAlarm');
   await chrome.storage.local.remove(['scheduleTargetTime', 'scheduleTargetTimestamp', 'scheduledPath', 'autoNewestDate']);
+  activeScheduleTimestamp = null;
   showUnscheduledState();
   $('schedule-status').textContent = 'Schedule cancelled.';
   $('schedule-status').classList.remove('error');
@@ -410,6 +477,7 @@ function readTrip() {
     fallbackClsList: fallbackList,
     seats: Number(fields.seats.value),
     trains: fields.trains.value.trim(),
+    autoContinuePurchase: fields.autoContinuePurchase ? fields.autoContinuePurchase.checked : true,
   };
 }
 
@@ -442,8 +510,11 @@ let saveStatusTimer = null;
 async function onEdit() {
   touched = true;
   const trip = readTrip();
+  updateZoneDetection(false);
   render(trip);
-  await BRTH.save({ trip });
+  const { settings = {} } = await BRTH.load(['settings']);
+  settings.autoContinuePurchase = trip.autoContinuePurchase;
+  await BRTH.save({ trip, settings });
   const statusEl = $('status');
   if (statusEl) {
     statusEl.textContent = '✓ Saved';
@@ -460,6 +531,7 @@ function render(trip = readTrip()) {
 
   if (trip.doj) {
     const d = BRTH.fromIso(trip.doj);
+    const zoneInfo = BRTH.detectRouteZone ? BRTH.detectRouteZone(trip.from, trip.to) : { dropTimeStr: '8:00 AM' };
     if (d < today) {
       $('doj-hint').textContent = `⚠️ Date is in the past (${BRTH.toShortDate(d)})`;
     } else if (BRTH.isInWindow(trip.doj)) {
@@ -468,7 +540,7 @@ function render(trip = readTrip()) {
       const rel = BRTH.releaseDateFor(trip.doj);
       const isRelTomorrow = rel && BRTH.toIso(rel) === BRTH.toIso(BRTH.addDays(today, 1));
       const relText = isRelTomorrow ? 'tomorrow' : (rel ? `on ${BRTH.toShortDate(rel)}` : '');
-      $('doj-hint').textContent = `Site format: ${BRTH.toSiteDate(trip.doj)} · Releases ${relText} at 8:00 AM`;
+      $('doj-hint').textContent = `Site format: ${BRTH.toSiteDate(trip.doj)} · Releases ${relText} at ${zoneInfo.dropTimeStr}`;
     }
   } else {
     $('doj-hint').textContent = `Bookable now: ${BRTH.toShortDate(min)} to ${BRTH.toShortDate(max)}`;
@@ -476,6 +548,19 @@ function render(trip = readTrip()) {
 
   const list = problems(trip, true);
   $('search').disabled = list.length > 0;
+
+  // Train off-day detection and warning banner
+  const offDayAlert = $('off-day-alert');
+  const offDayText = $('off-day-text');
+  if (offDayAlert && offDayText) {
+    const offDayInfo = BRTH.checkTrainOffDay ? BRTH.checkTrainOffDay(trip.trains, trip.doj) : null;
+    if (offDayInfo) {
+      offDayText.textContent = offDayInfo.message;
+      offDayAlert.hidden = false;
+    } else {
+      offDayAlert.hidden = true;
+    }
+  }
 
   $('errors').replaceChildren(...(touched ? list : []).map((text) => {
     const li = document.createElement('li');
@@ -489,9 +574,11 @@ function render(trip = readTrip()) {
     const trains = BRTH.parseTrainPrefs(trip.trains);
     const fallbackList = getFallbackClasses();
     const hierarchy = [trip.cls, ...fallbackList].filter(Boolean).join(' → ');
+    const purchaseMode = trip.autoContinuePurchase !== false ? '⚡ Direct Purchase' : '👁️ Review Seats First';
     $('ready').textContent = `Ready: ${trip.from} → ${trip.to} · ${BRTH.toSiteDate(trip.doj)} · Class: ${hierarchy}` +
       ` · ${trip.seats} seat${trip.seats > 1 ? 's' : ''}` +
-      (trains.length ? ` · prefers ${trip.trains}` : ' · any train');
+      (trains.length ? ` · prefers ${trip.trains}` : ' · any train') +
+      ` · ${purchaseMode}`;
   }
 }
 
@@ -550,6 +637,105 @@ function ensureStationOption(selectEl, value) {
     opt.value = value;
     opt.textContent = BRTH.stationLabel ? BRTH.stationLabel(value) : value;
     selectEl.appendChild(opt);
+  }
+}
+
+function updateZoneDetection(updateScheduleTime = false) {
+  if (!BRTH.detectRouteZone) return;
+  const zoneInfo = BRTH.detectRouteZone(fields.from?.value, fields.to?.value);
+  const badge = $('zone-detected-badge');
+  if (badge) badge.textContent = zoneInfo.badge;
+
+  const timeInput = $('schedule-time');
+  const currentVal = timeInput ? timeInput.value : '';
+  if (updateScheduleTime || !currentVal || currentVal === '08:00' || currentVal === '14:00') {
+    if (timeInput) timeInput.value = zoneInfo.time;
+    updateZoneToggleState(zoneInfo.time);
+  } else {
+    updateZoneToggleState(currentVal);
+  }
+  updateReleaseChipLabel();
+}
+
+function updateZoneToggleState(time) {
+  const btn8am = $('btn-zone-8am');
+  const btn2pm = $('btn-zone-2pm');
+  if (btn8am && btn2pm) {
+    btn8am.classList.toggle('active', time === '08:00');
+    btn2pm.classList.toggle('active', time === '14:00');
+  }
+}
+
+function updateReleaseChipLabel() {
+  const chipTomorrowRelease = $('chip-tomorrow-release');
+  if (!chipTomorrowRelease || !BRTH.detectRouteZone) return;
+  const tomorrowRelease = BRTH.tomorrowReleaseDate();
+  const zoneInfo = BRTH.detectRouteZone(fields.from?.value, fields.to?.value);
+  const hourLabel = zoneInfo.zone === 'eastern' ? '2 PM' : '8 AM';
+  chipTomorrowRelease.textContent = `⭐ Tomorrow's ${hourLabel} Release (${BRTH.toShortDate(tomorrowRelease)})`;
+}
+
+function getBstDate() {
+  const local = new Date();
+  const utcMs = local.getTime() + (local.getTimezoneOffset() * 60000);
+  return new Date(utcMs + (6 * 3600000));
+}
+
+function updateLiveCountdownHud() {
+  const clockEl = $('live-bst-clock');
+  const cdHours = $('cd-hours');
+  const cdMins = $('cd-mins');
+  const cdSecs = $('cd-secs');
+  const cdMs = $('cd-ms');
+  const subtextEl = $('countdown-subtext');
+  if (!clockEl || !cdHours || !cdMins || !cdSecs || !cdMs) return;
+
+  const bstNow = getBstDate();
+  const bstHours = bstNow.getHours();
+  const bstMins = bstNow.getMinutes();
+  const bstSecs = bstNow.getSeconds();
+  const ampm = bstHours >= 12 ? 'PM' : 'AM';
+  const displayHour = bstHours % 12 || 12;
+  clockEl.textContent = `${String(displayHour).padStart(2, '0')}:${String(bstMins).padStart(2, '0')}:${String(bstSecs).padStart(2, '0')} ${ampm} BST`;
+
+  let msDiff = 0;
+  let targetLabel = '';
+
+  if (activeScheduleTimestamp) {
+    msDiff = activeScheduleTimestamp - Date.now();
+    targetLabel = 'Active scheduled release · Keep Chrome open';
+    if (msDiff <= 0) {
+      targetLabel = '⚡ Scheduled execution launching now!';
+    }
+  } else {
+    // Determine target from schedule-time input or route zone
+    const timeVal = $('schedule-time')?.value || '08:00';
+    const [tHours, tMins] = timeVal.split(':').map(Number);
+    let targetBst = new Date(bstNow.getFullYear(), bstNow.getMonth(), bstNow.getDate(), tHours, tMins, 0, 0);
+    if (targetBst.getTime() <= bstNow.getTime()) {
+      targetBst.setDate(targetBst.getDate() + 1);
+    }
+    msDiff = targetBst.getTime() - bstNow.getTime();
+
+    const zoneInfo = BRTH.detectRouteZone ? BRTH.detectRouteZone(fields.from?.value, fields.to?.value) : null;
+    const zoneName = zoneInfo ? `${zoneInfo.name} (${zoneInfo.dropTimeStr})` : `${timeVal} Drop`;
+    targetLabel = `Next ${zoneName} release`;
+  }
+
+  const effectiveMs = Math.max(0, msDiff);
+  const totalSeconds = Math.floor(effectiveMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const msPart = Math.floor((effectiveMs % 1000) / 10);
+
+  cdHours.textContent = String(hours).padStart(2, '0');
+  cdMins.textContent = String(minutes).padStart(2, '0');
+  cdSecs.textContent = String(seconds).padStart(2, '0');
+  cdMs.textContent = String(msPart).padStart(2, '0');
+
+  if (subtextEl) {
+    subtextEl.textContent = targetLabel;
   }
 }
 
