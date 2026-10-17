@@ -243,6 +243,13 @@
           <br><span class="hint">Keeps seats as close together as possible across bogies instead of failing when seats are scattered.</span>
         </span>
       </label>
+
+      <label class="check" style="margin-top: 14px;">
+        <input type="checkbox" id="avoid-lavatory" checked>
+        <span>
+          <strong>Avoid Lavatory & Door Seats:</strong> Deprioritize end seats directly next to coach doors and toilets (seats 1–4 and last 4 seats). Prioritizes cleaner, quieter central rows.
+        </span>
+      </label>
     </section>
 
     <!-- Section 3: Monitoring & Hold Timers -->
@@ -409,6 +416,20 @@
           <br><span class="hint">Eliminates reaching for the mouse to click "Verify OTP".</span>
         </span>
       </label>
+
+      <label class="check" style="margin-top: 14px;">
+        <input type="checkbox" id="smart-clipboard-otp" checked>
+        <span>
+          <strong>Smart Clipboard OTP Grabber:</strong> Automatically extracts any 6-digit OTP code when copying SMS text or pasting (<kbd>Ctrl+V</kbd>) anywhere on the page.
+          <br><span class="hint">No need to click inside the OTP box — just copy or paste and the helper auto-submits!</span>
+        </span>
+      </label>
+
+      <div style="max-width: 380px; margin-top: 14px;">
+        <label for="wallet-number">Default bKash / Nagad Wallet Number <span class="label-hint">(optional)</span></label>
+        <input id="wallet-number" type="tel" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="off">
+        <p class="hint">Auto-fills your 11-digit mobile wallet number inside the bKash/Nagad checkout gateway.</p>
+      </div>
 
       <label class="check" style="margin-top: 14px;">
         <input type="checkbox" id="sound-alerts" checked>

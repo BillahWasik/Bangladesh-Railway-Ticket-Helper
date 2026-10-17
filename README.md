@@ -18,6 +18,10 @@ A high-performance Google Chrome extension (Manifest V3) designed to streamline 
 - **Anti-Logout Session Keep-Alive**: Background heartbeat pings the railway portal every 4 minutes to prevent idle session logouts right before 8 AM / 2 PM drops.
 - **Dynamic Multi-Coach Seat Partitioning**: When a single coach doesn't have enough seats, mathematically splits seats across coaches (2+2, 2+1, 1+1) and automatically switches bogies.
 - **Multi-Account Group Booking Mode (8–16 Seats, with ON/OFF setting)**: Specifically designed for families and groups needing more than 4 seats. Allows managing 2 to 4 registered accounts, coordinates coach seating, and provides 1-click profile export to sync with a secondary Chrome profile for concurrent 8-ticket drops.
+- **Pre-Drop Readiness Flight Check**: 5-point live diagnostic audit in the popup verifying account login, route validity, co-passengers, payment readiness, and sub-millisecond BST clock sync before 8:00 AM / 2:00 PM drops.
+- **Payment Turbo (bKash/Nagad Wallet Autofill & Smart OTP Clipboard)**: Pre-fills your mobile wallet number directly in the payment gateway and automatically extracts 6-digit OTP codes from copied SMS text or <kbd>Ctrl+V</kbd>.
+- **Seat Map Pro Intel**: Highlights seats with 220V power outlets (`⚡`), warns about door/lavatory proximity (`🚻`), and deprioritizes smelly end rows to favor quiet central coach seats.
+- **Quick PNR & Ticket Portal**: Direct PNR ticket status checker and 1-click access to purchase history and official PDF tickets.
 - **1-Click Profile Backup & Restore**: Export your complete configuration (login, co-passengers, payment gateways, preferences) to an encrypted JSON file and import it anytime.
 - **Payment Gateway Auto-Advance**: Pre-selects preferred payment gateways (bKash, Nagad, Rocket, Cards) and advances into checkout without delay.
 

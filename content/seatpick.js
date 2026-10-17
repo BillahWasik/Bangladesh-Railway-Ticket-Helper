@@ -24,10 +24,16 @@ const BRTHSeats = (() => {
     if (free.length < count) return null;
 
     const fit = (s) => {
-      if (rules.position === 'any' || !rules.position) return 0;
-      if (rules.position === 'lower_berth') return s.isLower ? 0 : 1;
-      if (rules.position === 'upper_berth') return (s.isLower === false) ? 0 : 1;
-      return s.position === rules.position ? 0 : 1;
+      let score = 0;
+      if (rules.position && rules.position !== 'any') {
+        if (rules.position === 'lower_berth') score += s.isLower ? 0 : 2;
+        else if (rules.position === 'upper_berth') score += (s.isLower === false) ? 0 : 2;
+        else score += s.position === rules.position ? 0 : 2;
+      }
+      if (rules.avoidLavatory && s.isNearLavatory) {
+        score += 5;
+      }
+      return score;
     };
     const front = (a, b) => a.row - b.row || a.col - b.col;
     const byRule = (a, b) => fit(a) - fit(b) || front(a, b);

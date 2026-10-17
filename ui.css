@@ -1551,6 +1551,148 @@ footer {
   font-weight: 600;
 }
 
+/* ==========================================================================
+   Pre-Drop Readiness Audit (Flight Check)
+   ========================================================================== */
+.readiness-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  transition: var(--transition-fast);
+}
+
+.readiness-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-card-subtle);
+  cursor: pointer;
+  user-select: none;
+}
+
+.readiness-header:hover {
+  background: var(--bg-card-elevated);
+}
+
+.readiness-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.readiness-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.readiness-dot.warn {
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+}
+
+.readiness-dot.error {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+}
+
+.readiness-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+
+.readiness-score-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-soft-border);
+}
+
+.readiness-score-badge.warn {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+  border-color: var(--warning-border);
+}
+
+.readiness-body {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.readiness-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--fg-secondary);
+}
+
+.audit-icon {
+  font-size: 10px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-soft);
+  color: var(--brand-primary);
+  font-weight: bold;
+}
+
+.audit-icon.warn {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.audit-icon.error {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+
+/* ==========================================================================
+   Seat Map Intel Badges (Power Sockets, Lavatory Avoidance)
+   ========================================================================== */
+.brth-seat-power {
+  position: relative;
+}
+
+.brth-seat-power::after {
+  content: "⚡";
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.brth-seat-lavatory {
+  opacity: 0.8;
+  filter: grayscale(0.2);
+}
+
+.brth-seat-lavatory::after {
+  content: "🚻";
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 8px;
+  line-height: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

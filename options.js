@@ -28,9 +28,11 @@ async function init() {
   $('hold-minutes').value = settings.holdMinutes ?? 5;
   $('preferred-payment').value = settings.preferredPayment ?? '';
 
-  // New checkout, OTP, sound and keep-alive settings
+  if ($('avoid-lavatory')) $('avoid-lavatory').checked = settings.avoidLavatory ?? true;
   if ($('auto-confirm-payment')) $('auto-confirm-payment').checked = settings.autoConfirmPayment ?? false;
   if ($('auto-otp')) $('auto-otp').checked = settings.autoOtp ?? true;
+  if ($('smart-clipboard-otp')) $('smart-clipboard-otp').checked = settings.smartClipboardOtp ?? true;
+  if ($('wallet-number')) $('wallet-number').value = settings.walletNumber ?? '';
   if ($('sound-alerts')) $('sound-alerts').checked = settings.soundAlerts ?? true;
   if ($('keep-alive')) $('keep-alive').checked = settings.keepAlive ?? true;
 
@@ -137,6 +139,7 @@ async function onSave(e) {
       seatPosition: $('seat-position').value,
       seatsTogether: $('seats-together').checked,
       splitCoaches: $('split-coaches') ? $('split-coaches').checked : true,
+      avoidLavatory: $('avoid-lavatory') ? $('avoid-lavatory').checked : true,
       preferredCoaches: $('preferred-coaches').value.trim(),
       boardingStation: $('boarding-station') ? $('boarding-station').value.trim() : '',
       autoRefresh: $('auto-refresh').checked,
@@ -147,6 +150,8 @@ async function onSave(e) {
       preferredPayment: $('preferred-payment').value,
       autoConfirmPayment: $('auto-confirm-payment') ? $('auto-confirm-payment').checked : false,
       autoOtp: $('auto-otp') ? $('auto-otp').checked : true,
+      smartClipboardOtp: $('smart-clipboard-otp') ? $('smart-clipboard-otp').checked : true,
+      walletNumber: $('wallet-number') ? $('wallet-number').value.trim() : '',
       soundAlerts: $('sound-alerts') ? $('sound-alerts').checked : true,
       keepAlive: $('keep-alive') ? $('keep-alive').checked : true,
     },

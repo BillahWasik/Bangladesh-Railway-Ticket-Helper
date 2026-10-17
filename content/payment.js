@@ -35,6 +35,11 @@
     if (!boardingStationSelected && settings.boardingStation) {
       handleBoardingStation(settings.boardingStation);
     }
+
+    // 5. Handle bKash / Nagad Wallet Number Autofill
+    if (settings.walletNumber) {
+      handleWalletAutofill(settings.walletNumber);
+    }
   }
 
   // Auto-fill co-passenger details (Passenger 2, 3, 4) on checkout / passenger details form
@@ -109,6 +114,10 @@
 
       BRTHBadge?.show('OTP verification screen detected! Check your SMS. Auto-submitting on 6 digits.', 'info', 6000, 'otp');
 
+      if (settings.smartClipboardOtp !== false) {
+        setupClipboardOtpListener(otpInput);
+      }
+
       // Auto-submit when exactly 6 digits are entered
       otpInput.addEventListener('input', () => {
         const cleaned = otpInput.value.replace(/\D/g, '');
@@ -181,5 +190,38 @@
         break;
       }
     }
+  }
+
+  let walletAutofilled = false;
+  function handleWalletAutofill(walletNum) {
+    if (walletAutofilled || !walletNum) return;
+    const walletInput = document.querySelector(
+      'input[placeholder*="wallet" i], input[placeholder*="01" i], input[name*="wallet" i], input[name*="account" i], input#account_number, input#wallet_number'
+    );
+    if (walletInput && !walletInput.value.trim() && !walletInput.disabled) {
+      walletInput.value = walletNum.trim();
+      walletInput.dispatchEvent(new Event('input', { bubbles: true }));
+      walletInput.dispatchEvent(new Event('change', { bubbles: true }));
+      walletAutofilled = true;
+      BRTHBadge?.show(`Auto-filled wallet ${walletNum}!`, 'info', 3000, 'wallet');
+    }
+  }
+
+  let clipboardListenerAttached = false;
+  function setupClipboardOtpListener(otpInput) {
+    if (clipboardListenerAttached) return;
+    clipboardListenerAttached = true;
+
+    window.addEventListener('paste', (e) => {
+      const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      const match = text.match(/\b\d{6}\b/);
+      if (match && otpInput && otpInput.isConnected) {
+        e.preventDefault();
+        otpInput.value = match[0];
+        otpInput.dispatchEvent(new Event('input', { bubbles: true }));
+        otpInput.dispatchEvent(new Event('change', { bubbles: true }));
+        BRTHBadge?.show(`Extracted OTP ${match[0]} from clipboard! Submitting…`, 'info', 3000, 'otp');
+      }
+    });
   }
 })();

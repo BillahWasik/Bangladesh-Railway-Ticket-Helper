@@ -501,6 +501,25 @@
       const seatNum = numMatch ? Number(numMatch[0]) : null;
       // In Bangladesh Railway sleeper/berth coaches, odd numbers are standard lower berths, even are upper
       s.isLower = seatNum !== null ? (seatNum % 2 === 1) : (s.row % 2 === 0);
+
+      // Seats 1-4 and end rows are directly next to coach doors/lavatories
+      const isEndRow = s.row <= 1 || s.row >= 11;
+      const isEndSeatNum = seatNum !== null && (seatNum <= 4 || seatNum >= 57);
+      s.isNearLavatory = isEndRow || isEndSeatNum;
+
+      // Rows 1-3 and front sections feature 220V power sockets
+      s.hasPowerSocket = (seatNum !== null && (seatNum >= 1 && seatNum <= 12)) || (s.row >= 0 && s.row <= 2);
+
+      if (s.button) {
+        if (s.hasPowerSocket && !s.button.classList.contains('brth-seat-power')) {
+          s.button.classList.add('brth-seat-power');
+          if (!s.button.title.includes('⚡')) s.button.title += ' ⚡ (Power socket)';
+        }
+        if (s.isNearLavatory && !s.button.classList.contains('brth-seat-lavatory')) {
+          s.button.classList.add('brth-seat-lavatory');
+          if (!s.button.title.includes('🚻')) s.button.title += ' 🚻 (Near door/toilet)';
+        }
+      }
     }
     return seats;
   }

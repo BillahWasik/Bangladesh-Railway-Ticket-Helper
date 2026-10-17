@@ -258,6 +258,39 @@
     </button>
   </div>
 
+  <!-- Pre-Drop Readiness Audit (Flight Check) -->
+  <div class="readiness-card" id="readiness-card">
+    <div class="readiness-header" id="readiness-toggle-btn" title="Click to view full flight checklist">
+      <div class="readiness-header-left">
+        <span class="readiness-dot ready" id="audit-main-dot"></span>
+        <span class="readiness-title">Pre-Drop Flight Check</span>
+      </div>
+      <span class="readiness-score-badge" id="audit-score-badge">Checking…</span>
+    </div>
+    <div class="readiness-body" id="readiness-body">
+      <div class="readiness-item" id="audit-item-login">
+        <span class="audit-icon" id="audit-icon-login">⏳</span>
+        <span class="audit-desc" id="audit-text-login">Account: Checking…</span>
+      </div>
+      <div class="readiness-item" id="audit-item-route">
+        <span class="audit-icon" id="audit-icon-route">⏳</span>
+        <span class="audit-desc" id="audit-text-route">Journey Route: Checking…</span>
+      </div>
+      <div class="readiness-item" id="audit-item-passengers">
+        <span class="audit-icon" id="audit-icon-passengers">⏳</span>
+        <span class="audit-desc" id="audit-text-passengers">Co-Passengers: Checking…</span>
+      </div>
+      <div class="readiness-item" id="audit-item-payment">
+        <span class="audit-icon" id="audit-icon-payment">⏳</span>
+        <span class="audit-desc" id="audit-text-payment">Payment Method: Checking…</span>
+      </div>
+      <div class="readiness-item" id="audit-item-sync">
+        <span class="audit-icon" id="audit-icon-sync">⏳</span>
+        <span class="audit-desc" id="audit-text-sync">Time Sync: Live BST Clock</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Dual-Zone Automated Release Scheduler Card (8 AM / 2 PM Engine) -->
   <div class="schedule-box">
     <div class="schedule-header">
@@ -320,6 +353,31 @@
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
       <span>Keep PC awake (disable Windows Sleep / Hibernate) so Chrome stays running.</span>
+    </div>
+  </div>
+
+  <!-- Quick PNR & Ticket Portal -->
+  <div class="card pnr-card" id="pnr-card" style="margin-top: 13px;">
+    <div class="card-title">
+      <div class="title-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        Quick PNR & Ticket Portal
+      </div>
+    </div>
+    <div class="pnr-search-row" style="display: flex; gap: 6px; margin-top: 6px;">
+      <input type="text" id="pnr-input" placeholder="Enter PNR / Mobile Number" autocomplete="off" style="flex: 1; height: 32px;">
+      <button type="button" id="pnr-check-btn" class="primary" style="white-space:nowrap; height:32px; padding: 0 11px;">Check PNR</button>
+    </div>
+    <div class="pnr-quick-links" style="margin-top: 8px; display: flex; gap: 6px;">
+      <button type="button" class="header-action-btn" id="btn-purchase-history" style="height: 25px; font-size: 10.5px; flex: 1;" title="View all purchased tickets and download PDF">
+        📄 Purchase History & PDFs
+      </button>
+      <button type="button" class="header-action-btn" id="btn-verify-ticket" style="height: 25px; font-size: 10.5px; flex: 1;" title="Verify ticket details online">
+        🔍 Verify Ticket
+      </button>
     </div>
   </div>
 

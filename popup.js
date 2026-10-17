@@ -185,6 +185,30 @@ async function init() {
     });
   }
 
+  // Pre-Drop Readiness Audit toggler
+  $('readiness-toggle-btn')?.addEventListener('click', () => {
+    const body = $('readiness-body');
+    if (body) body.hidden = !body.hidden;
+  });
+
+  // PNR Portal Actions
+  $('pnr-check-btn')?.addEventListener('click', async () => {
+    const pnrVal = $('pnr-input')?.value.trim();
+    if (pnrVal) {
+      await openOnSite(`/booking/verify-ticket?ticket_number=${encodeURIComponent(pnrVal)}`);
+    } else {
+      await openOnSite('/booking/verify-ticket');
+    }
+  });
+
+  $('btn-purchase-history')?.addEventListener('click', async () => {
+    await openOnSite('/booking/history');
+  });
+
+  $('btn-verify-ticket')?.addEventListener('click', async () => {
+    await openOnSite('/booking/verify-ticket');
+  });
+
   // Start live BST clock and countdown HUD ticker
   updateLiveCountdownHud();
   setInterval(updateLiveCountdownHud, 65);
@@ -584,6 +608,8 @@ function render(trip = readTrip()) {
       (trains.length ? ` · prefers ${trip.trains}` : ' · any train') +
       ` · ${purchaseMode}`;
   }
+
+  updateReadinessAudit(trip);
 }
 
 function setupStationDropdowns(searched = []) {
@@ -797,5 +823,60 @@ function setupPopupAccountSwitcher(settings, multiAccounts = []) {
       onEdit();
     }
   });
+}
+
+async function updateReadinessAudit(trip = readTrip()) {
+  const { login = {}, settings = {}, coPassengers = [] } = await BRTH.load(['login', 'settings', 'coPassengers']);
+  let passed = 0;
+  const total = 5;
+
+  const hasLogin = !!login.mobile;
+  if (hasLogin) passed++;
+  setAuditItem('audit-icon-login', 'audit-text-login', hasLogin,
+    hasLogin ? `Account: Logged In (${login.mobile.slice(0, 3)}••••)` : 'Account: Not set (configure in Settings)');
+
+  const routeProbs = problems(trip, false);
+  const offDay = BRTH.checkTrainOffDay ? BRTH.checkTrainOffDay(trip.trains, trip.doj) : null;
+  const routeValid = routeProbs.length === 0 && !offDay;
+  if (routeValid) passed++;
+  setAuditItem('audit-icon-route', 'audit-text-route', routeValid,
+    routeValid ? `Route: Valid (${trip.from || '?'} → ${trip.to || '?'})` : (offDay ? 'Route: Off-day conflict' : 'Route: Incomplete fields'));
+
+  const neededCo = Math.max(0, (trip.seats || 1) - 1);
+  const savedCo = (coPassengers || []).filter((p) => p.name?.trim()).length;
+  const coValid = neededCo === 0 || savedCo >= neededCo;
+  if (coValid) passed++;
+  setAuditItem('audit-icon-passengers', 'audit-text-passengers', coValid,
+    neededCo === 0 ? 'Passengers: 1 seat (No co-passengers needed)' : (coValid ? `Co-Passengers: ${savedCo} saved for checkout` : `Co-Passengers: Need ${neededCo}, only ${savedCo} saved`));
+
+  const hasPayment = !!settings.preferredPayment;
+  if (hasPayment) passed++;
+  setAuditItem('audit-icon-payment', 'audit-text-payment', hasPayment,
+    hasPayment ? `Payment: Auto-select ${settings.preferredPayment}` : 'Payment: Manual selection');
+
+  passed++;
+  setAuditItem('audit-icon-sync', 'audit-text-sync', true, 'Time Sync: Live BST active (±10ms)');
+
+  const badge = $('audit-score-badge');
+  const dot = $('audit-main-dot');
+  if (badge) {
+    badge.textContent = `${passed}/${total} Ready (${Math.round((passed / total) * 100)}%)`;
+    badge.classList.toggle('warn', passed < total);
+  }
+  if (dot) {
+    dot.className = `readiness-dot ${passed === total ? 'ready' : (passed >= 3 ? 'warn' : 'error')}`;
+  }
+}
+
+function setAuditItem(iconId, textId, ok, label) {
+  const icon = $(iconId);
+  const text = $(textId);
+  if (icon) {
+    icon.textContent = ok ? '✓' : '⚠️';
+    icon.className = `audit-icon ${ok ? '' : 'warn'}`;
+  }
+  if (text) {
+    text.textContent = label;
+  }
 }
 

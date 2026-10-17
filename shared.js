@@ -405,6 +405,7 @@ const BRTH = (() => {
       together: settings?.seatsTogether ?? true,
       coaches: parseTrainPrefs(settings?.preferredCoaches), // same "a, b" format, lower-cased
       splitCoaches: settings?.splitCoaches ?? true,
+      avoidLavatory: settings?.avoidLavatory ?? true,
       autoContinuePurchase: trip?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true,
     };
   }
