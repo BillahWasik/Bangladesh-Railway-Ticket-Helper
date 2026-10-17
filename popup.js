@@ -38,7 +38,8 @@ async function init() {
     scheduleTargetTimestamp,
     scheduledPath,
     autoNewestDate = false,
-  } = await BRTH.load(['trip', 'settings', 'coPassengers', 'stations', 'login', 'scheduleTargetTime', 'scheduleTargetTimestamp', 'scheduledPath', 'autoNewestDate']);
+    multiAccounts = [],
+  } = await BRTH.load(['trip', 'settings', 'coPassengers', 'stations', 'login', 'scheduleTargetTime', 'scheduleTargetTimestamp', 'scheduledPath', 'autoNewestDate', 'multiAccounts']);
 
   // Populate From and To station dropdowns (Popular Hubs + All Stations A-Z)
   setupStationDropdowns(searched);
@@ -140,6 +141,9 @@ async function init() {
   $('login-state').textContent = login?.mobile
     ? `Login: ${login.mobile.slice(0, 3)}••••••${login.mobile.slice(-2)}`
     : 'Login: not set';
+
+  // Multi-Account Switcher (Visible only when Multi-Account Mode is ON)
+  setupPopupAccountSwitcher(settings, multiAccounts);
 
   render();
 
@@ -737,5 +741,61 @@ function updateLiveCountdownHud() {
   if (subtextEl) {
     subtextEl.textContent = targetLabel;
   }
+}
+
+function setupPopupAccountSwitcher(settings, multiAccounts = []) {
+  const bar = $('account-switcher-bar');
+  const select = $('popup-account-select');
+  if (!bar || !select) return;
+
+  if (!settings?.multiAccountMode) {
+    bar.hidden = true;
+    return;
+  }
+
+  bar.hidden = false;
+  select.replaceChildren();
+
+  const accounts = Array.isArray(multiAccounts) && multiAccounts.length > 0 ? multiAccounts : [
+    { id: 'acc_1', name: 'Account 1 (Primary)' },
+    { id: 'acc_2', name: 'Account 2 (Family)' },
+  ];
+
+  accounts.forEach((acc) => {
+    const opt = document.createElement('option');
+    opt.value = acc.id;
+    const phonePart = acc.mobile ? ` (${acc.mobile.slice(0, 3)}••••)` : '';
+    opt.textContent = `${acc.name}${phonePart}`;
+    select.appendChild(opt);
+  });
+
+  if (settings.activeAccountId) {
+    select.value = settings.activeAccountId;
+  }
+
+  select.addEventListener('change', async () => {
+    const targetId = select.value;
+    const targetAcc = accounts.find((a) => a.id === targetId);
+    if (targetAcc) {
+      const newLogin = { mobile: targetAcc.mobile || '', password: targetAcc.password || '', autoClick: true };
+      const newCoPassengers = (targetAcc.passengers || []).filter(Boolean).map((p) => ({ name: p, type: 'ADULT' }));
+      const { settings: curSettings = {} } = await BRTH.load(['settings']);
+      curSettings.activeAccountId = targetId;
+      if (targetAcc.coaches) curSettings.preferredCoaches = targetAcc.coaches;
+      await BRTH.save({ login: newLogin, coPassengers: newCoPassengers, settings: curSettings });
+
+      $('login-state').textContent = targetAcc.mobile
+        ? `Login: ${targetAcc.mobile.slice(0, 3)}••••••${targetAcc.mobile.slice(-2)}`
+        : 'Login: not set';
+
+      const pHint = $('passenger-autofill-hint');
+      if (pHint) {
+        const count = newCoPassengers.length;
+        pHint.textContent = count > 0 ? `Co-passengers: ${count} for ${targetAcc.name}` : 'Co-passengers: none';
+      }
+
+      onEdit();
+    }
+  });
 }
 

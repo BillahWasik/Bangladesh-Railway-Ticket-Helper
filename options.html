@@ -84,6 +84,91 @@
       </label>
     </section>
 
+    <!-- Section 1B: Multi-Account Mode (8 - 16 Seats) -->
+    <section class="options-section">
+      <div class="options-section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <h2>Multi-Account & Group Booking Mode (8 – 16 Seats)</h2>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="multi-account-mode">
+        <span>
+          <strong>Enable Multi-Account Mode (ON / OFF):</strong> For booking more than 4 seats (8 or 10 seats) across multiple NID accounts.
+          <br><span class="hint">Because Bangladesh Railway limits 1 NID to 4 seats, this enables managing multiple accounts, coordinated coach seating, and 1-click dual Chrome sync.</span>
+        </span>
+      </label>
+
+      <!-- Multi-Account Editor (Hidden when ON/OFF setting is OFF) -->
+      <div id="multi-account-container" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle);" hidden>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div class="account-tabs" id="account-tabs"></div>
+          <button type="button" id="add-account-btn" class="header-action-btn" style="height: 28px; font-size: 11.5px;">+ Add Account</button>
+        </div>
+
+        <div class="account-profile-card" id="account-profile-card" style="padding: 12px 14px; background: var(--bg-card-subtle); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--fg-primary);" id="cur-account-heading">
+              Editing: Account 1 (Primary)
+            </div>
+            <button type="button" id="remove-account-btn" class="header-action-btn" style="height: 24px; font-size: 10.5px; color: var(--danger-fg);" title="Delete this account profile">Delete Profile</button>
+          </div>
+
+          <div class="options-grid" style="margin-top: 0; gap: 10px;">
+            <div>
+              <label for="acc-name">Account Label</label>
+              <input type="text" id="acc-name" placeholder="e.g. My Account (NID 1)">
+            </div>
+            <div>
+              <label for="acc-mobile">Registered Mobile</label>
+              <input type="tel" id="acc-mobile" placeholder="01XXXXXXXXX" maxlength="11">
+            </div>
+            <div>
+              <label for="acc-password">Password</label>
+              <input type="password" id="acc-password" placeholder="••••••••">
+            </div>
+            <div>
+              <label for="acc-coaches">Target Coach Preference</label>
+              <input type="text" id="acc-coaches" placeholder="e.g. CHA (for Acc 1), JA (for Acc 2)">
+              <p class="hint">Coordinate coaches so both accounts sit together.</p>
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-default);">
+            <div style="font-size: 11.5px; font-weight: 600; color: var(--brand-primary); margin-bottom: 6px;">
+              Co-Passengers for this Account (Seats 2, 3, 4)
+            </div>
+            <div class="options-grid" style="gap: 8px;">
+              <div>
+                <input type="text" id="acc-pass-2" placeholder="Seat 2 Passenger Name">
+              </div>
+              <div>
+                <input type="text" id="acc-pass-3" placeholder="Seat 3 Passenger Name">
+              </div>
+              <div>
+                <input type="text" id="acc-pass-4" placeholder="Seat 4 Passenger Name">
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+            <button type="button" id="export-single-account-btn" class="header-action-btn" style="height: 28px; font-size: 11.5px;">
+              📦 Export this Account for 2nd Chrome Window
+            </button>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top: 12px; margin-bottom: 0;">
+          💡 <strong>Simultaneous 8-Ticket Booking Tip:</strong> Open a 2nd Chrome Profile, install this extension, click <em>Import Profile</em> in Settings, and select the exported Account 2 JSON file. Both Chrome windows will book 4+4=8 tickets at the exact same millisecond!
+        </div>
+      </div>
+    </section>
+
     <!-- Section 2: Automated Booking Rules -->
     <section class="options-section">
       <div class="options-section-header">

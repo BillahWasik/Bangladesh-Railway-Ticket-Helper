@@ -1,10 +1,12 @@
 const $ = (id) => document.getElementById(id);
+let multiAccountsList = [];
+let activeEditingAccId = 'acc_1';
 
 init();
 
 async function init() {
   if (BRTH.initTheme) BRTH.initTheme($('theme-toggle'));
-  const { login = {}, settings = {}, trip = {}, coPassengers = [] } = await BRTH.load(['login', 'settings', 'trip', 'coPassengers']);
+  const { login = {}, settings = {}, trip = {}, coPassengers = [], multiAccounts = [] } = await BRTH.load(['login', 'settings', 'trip', 'coPassengers', 'multiAccounts']);
   $('mobile').value = login.mobile ?? '';
   $('password').value = login.password ?? '';
   $('auto-click').checked = login.autoClick ?? true;
@@ -39,6 +41,9 @@ async function init() {
   $('test-otp-chime-btn')?.addEventListener('click', () => {
     if (BRTH.playChime) BRTH.playChime('otp');
   });
+
+  // Multi-Account Section Setup (ON / OFF choice)
+  setupMultiAccountSection(multiAccounts, settings, login, coPassengers);
 
   // Co-passenger details
   if ($('pass-name-2')) $('pass-name-2').value = coPassengers[0]?.name ?? '';
@@ -115,11 +120,17 @@ async function onSave(e) {
     { name: $('pass-name-4') ? $('pass-name-4').value.trim() : '', type: $('pass-type-4') ? $('pass-type-4').value : 'ADULT' },
   ];
 
+  saveCurrentFieldsToAccount();
+  const isMultiMode = $('multi-account-mode') ? $('multi-account-mode').checked : false;
+
   await BRTH.save({
     login: { mobile, password: $('password').value, autoClick: $('auto-click').checked },
     coPassengers,
+    multiAccounts: multiAccountsList,
     settings: {
       acceptDisclaimer: $('accept-disclaimer').checked,
+      multiAccountMode: isMultiMode,
+      activeAccountId: activeEditingAccId,
       autoBookNow: $('auto-book-now').checked,
       autoPickSeats: $('auto-pick-seats').checked,
       autoContinuePurchase: $('auto-continue-purchase') ? $('auto-continue-purchase').checked : true,
@@ -169,4 +180,151 @@ function showStatus(text, isError = false) {
       statusEl.textContent = '';
     }, 4000);
   }
+}
+
+function setupMultiAccountSection(multiAccounts, settings, login, coPassengers) {
+  const modeCheckbox = $('multi-account-mode');
+  const container = $('multi-account-container');
+  if (!modeCheckbox || !container) return;
+
+  modeCheckbox.checked = settings.multiAccountMode ?? false;
+  container.hidden = !modeCheckbox.checked;
+
+  modeCheckbox.addEventListener('change', () => {
+    container.hidden = !modeCheckbox.checked;
+  });
+
+  if (Array.isArray(multiAccounts) && multiAccounts.length > 0) {
+    multiAccountsList = JSON.parse(JSON.stringify(multiAccounts));
+  } else {
+    multiAccountsList = [
+      {
+        id: 'acc_1',
+        name: 'Account 1 (Primary)',
+        mobile: login.mobile ?? '',
+        password: login.password ?? '',
+        coaches: settings.preferredCoaches ?? '',
+        passengers: [coPassengers[0]?.name ?? '', coPassengers[1]?.name ?? '', coPassengers[2]?.name ?? ''],
+      },
+      {
+        id: 'acc_2',
+        name: 'Account 2 (Family)',
+        mobile: '',
+        password: '',
+        coaches: '',
+        passengers: ['', '', ''],
+      },
+    ];
+  }
+
+  activeEditingAccId = multiAccountsList[0]?.id || 'acc_1';
+  renderTabs();
+  loadAccountIntoFields(activeEditingAccId);
+
+  $('add-account-btn')?.addEventListener('click', () => {
+    if (multiAccountsList.length >= 4) {
+      showStatus('Maximum 4 accounts allowed (16 seats).', true);
+      return;
+    }
+    saveCurrentFieldsToAccount();
+    const newIdx = multiAccountsList.length + 1;
+    const newAcc = {
+      id: `acc_${Date.now()}`,
+      name: `Account ${newIdx} (Secondary)`,
+      mobile: '',
+      password: '',
+      coaches: '',
+      passengers: ['', '', ''],
+    };
+    multiAccountsList.push(newAcc);
+    activeEditingAccId = newAcc.id;
+    renderTabs();
+    loadAccountIntoFields(activeEditingAccId);
+  });
+
+  $('remove-account-btn')?.addEventListener('click', () => {
+    if (multiAccountsList.length <= 1) {
+      showStatus('You must keep at least 1 account.', true);
+      return;
+    }
+    multiAccountsList = multiAccountsList.filter((a) => a.id !== activeEditingAccId);
+    activeEditingAccId = multiAccountsList[0].id;
+    renderTabs();
+    loadAccountIntoFields(activeEditingAccId);
+  });
+
+  $('export-single-account-btn')?.addEventListener('click', async () => {
+    saveCurrentFieldsToAccount();
+    const acc = multiAccountsList.find((a) => a.id === activeEditingAccId);
+    if (!acc) return;
+    const { trip, settings: curSettings = {} } = await BRTH.load(['trip', 'settings']);
+    const exportData = {
+      login: { mobile: acc.mobile, password: acc.password, autoClick: true },
+      coPassengers: [
+        { name: acc.passengers[0] || '', type: 'ADULT' },
+        { name: acc.passengers[1] || '', type: 'ADULT' },
+        { name: acc.passengers[2] || '', type: 'ADULT' },
+      ],
+      settings: {
+        ...curSettings,
+        preferredCoaches: acc.coaches,
+      },
+      trip,
+    };
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `brth-${acc.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}-profile.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showStatus(`Exported ${acc.name} configuration for 2nd Chrome window!`);
+  });
+}
+
+function renderTabs() {
+  const tabsContainer = $('account-tabs');
+  if (!tabsContainer) return;
+  tabsContainer.replaceChildren();
+  multiAccountsList.forEach((acc) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `account-tab-btn ${acc.id === activeEditingAccId ? 'active' : ''}`;
+    btn.textContent = acc.name;
+    btn.addEventListener('click', () => {
+      saveCurrentFieldsToAccount();
+      activeEditingAccId = acc.id;
+      renderTabs();
+      loadAccountIntoFields(acc.id);
+    });
+    tabsContainer.appendChild(btn);
+  });
+}
+
+function loadAccountIntoFields(accId) {
+  const acc = multiAccountsList.find((a) => a.id === accId);
+  if (!acc) return;
+  if ($('cur-account-heading')) $('cur-account-heading').textContent = `Editing: ${acc.name}`;
+  if ($('acc-name')) $('acc-name').value = acc.name;
+  if ($('acc-mobile')) $('acc-mobile').value = acc.mobile;
+  if ($('acc-password')) $('acc-password').value = acc.password;
+  if ($('acc-coaches')) $('acc-coaches').value = acc.coaches;
+  if ($('acc-pass-2')) $('acc-pass-2').value = acc.passengers[0] || '';
+  if ($('acc-pass-3')) $('acc-pass-3').value = acc.passengers[1] || '';
+  if ($('acc-pass-4')) $('acc-pass-4').value = acc.passengers[2] || '';
+}
+
+function saveCurrentFieldsToAccount() {
+  const acc = multiAccountsList.find((a) => a.id === activeEditingAccId);
+  if (!acc) return;
+  if ($('acc-name')) acc.name = $('acc-name').value.trim() || acc.name;
+  if ($('acc-mobile')) acc.mobile = $('acc-mobile').value.trim();
+  if ($('acc-password')) acc.password = $('acc-password').value;
+  if ($('acc-coaches')) acc.coaches = $('acc-coaches').value.trim();
+  acc.passengers = [
+    $('acc-pass-2')?.value.trim() || '',
+    $('acc-pass-3')?.value.trim() || '',
+    $('acc-pass-4')?.value.trim() || '',
+  ];
 }

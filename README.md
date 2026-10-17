@@ -17,6 +17,7 @@ A high-performance Google Chrome extension (Manifest V3) designed to streamline 
 - **Desktop Push Notifications**: Chrome desktop notifications (`chrome.notifications`) alert you even when Chrome is minimized or in another window.
 - **Anti-Logout Session Keep-Alive**: Background heartbeat pings the railway portal every 4 minutes to prevent idle session logouts right before 8 AM / 2 PM drops.
 - **Dynamic Multi-Coach Seat Partitioning**: When a single coach doesn't have enough seats, mathematically splits seats across coaches (2+2, 2+1, 1+1) and automatically switches bogies.
+- **Multi-Account Group Booking Mode (8–16 Seats, with ON/OFF setting)**: Specifically designed for families and groups needing more than 4 seats. Allows managing 2 to 4 registered accounts, coordinates coach seating, and provides 1-click profile export to sync with a secondary Chrome profile for concurrent 8-ticket drops.
 - **1-Click Profile Backup & Restore**: Export your complete configuration (login, co-passengers, payment gateways, preferences) to an encrypted JSON file and import it anytime.
 - **Payment Gateway Auto-Advance**: Pre-selects preferred payment gateways (bKash, Nagad, Rocket, Cards) and advances into checkout without delay.
 

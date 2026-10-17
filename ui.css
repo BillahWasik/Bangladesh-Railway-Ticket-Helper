@@ -1478,6 +1478,79 @@ footer {
   display: none !important;
 }
 
+/* ==========================================================================
+   Multi-Account Group Booking (8–16 Seats)
+   ========================================================================== */
+.account-switcher-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-xs);
+}
+
+.account-switcher-bar[hidden] {
+  display: none !important;
+}
+
+.account-switcher-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-secondary);
+}
+
+.popup-account-select {
+  height: 25px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  max-width: 175px;
+  outline: none;
+}
+
+.account-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.account-tab-btn {
+  height: 28px;
+  padding: 0 11px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: var(--radius-xs);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.account-tab-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.account-tab-btn.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--fg-on-brand);
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
