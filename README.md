@@ -12,6 +12,9 @@ A high-performance Google Chrome extension (Manifest V3) designed to streamline 
 - **Sleeper Berth Preferences**: Select between Lower Berth (preferential for elderly/children) or Upper Berth on overnight sleeper trains.
 - **Co-Passenger Autofill Manager**: Saves travel companion names and passenger types (Adult/Child) in settings to instantly auto-fill passenger fields (Seats 2, 3, 4) at checkout.
 - **Direct Purchase Mode**: Configurable checkbox toggle to either automatically advance through checkout to OTP/payment or hold seats to inspect them before purchasing.
+- **Seat Preview Mode (Dry Run - Leave Seats Free)**: Test and outline matching seats on the map without advancing to checkout, preventing Bangladesh Railway from placing the 5-minute server hold so seats remain free for others.
+- **1-Click Free / Deselect Seats Toolbar**: Floating in-page toolbar above the seat map that lets you deselect and release all chosen seats in one click, immediately freeing them up for other passengers.
+- **Hold Expiry & Checkout Abandonment Assistant**: Live countdown and 1-click abandon button on checkout/payment screens displaying the exact time remaining until the railway server releases seats back to the public pool.
 - **OTP Assistant & Auto-Submit**: Detects OTP arrival, plays an attention chime, focuses the OTP field, and automatically triggers submission once 6 digits are entered.
 - **Web Audio Chimes**: Melodic sound alerts for available seat discovery during auto-refresh, OTP arrival, and booking completion.
 - **Desktop Push Notifications**: Chrome desktop notifications (`chrome.notifications`) alert you even when Chrome is minimized or in another window.

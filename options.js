@@ -15,6 +15,22 @@ async function init() {
   $('auto-pick-seats').checked = settings.autoPickSeats ?? true;
   const autoContinueEl = $('auto-continue-purchase');
   if (autoContinueEl) autoContinueEl.checked = settings.autoContinuePurchase ?? trip.autoContinuePurchase ?? true;
+  const previewEl = $('preview-mode');
+  if (previewEl) {
+    previewEl.checked = settings.previewMode ?? trip.previewMode ?? false;
+    previewEl.addEventListener('change', () => {
+      if (previewEl.checked && autoContinueEl) {
+        autoContinueEl.checked = false;
+      }
+    });
+  }
+  if (autoContinueEl) {
+    autoContinueEl.addEventListener('change', () => {
+      if (autoContinueEl.checked && previewEl) {
+        previewEl.checked = false;
+      }
+    });
+  }
   $('seat-position').value = settings.seatPosition ?? 'window';
   $('seats-together').checked = settings.seatsTogether ?? true;
   const splitCoachesEl = $('split-coaches');
@@ -136,6 +152,7 @@ async function onSave(e) {
       autoBookNow: $('auto-book-now').checked,
       autoPickSeats: $('auto-pick-seats').checked,
       autoContinuePurchase: $('auto-continue-purchase') ? $('auto-continue-purchase').checked : true,
+      previewMode: $('preview-mode') ? $('preview-mode').checked : false,
       seatPosition: $('seat-position').value,
       seatsTogether: $('seats-together').checked,
       splitCoaches: $('split-coaches') ? $('split-coaches').checked : true,

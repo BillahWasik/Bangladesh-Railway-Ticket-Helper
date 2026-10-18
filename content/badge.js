@@ -3,9 +3,10 @@
 // instead of overwriting each other.
 const BRTHBadge = (() => {
   const RANK = { info: 0, warn: 1, error: 2 };
-  const messages = new Map(); // key -> { message, tone, timer }
+  const messages = new Map(); // key -> { message, tone, timer, action }
   let host = null;
   let text = null;
+  let actionsContainer = null;
 
   function ensure() {
     if (host?.isConnected) return;
@@ -74,7 +75,39 @@ const BRTHBadge = (() => {
           color: #334155;
           font-weight: 450;
         }
-        button {
+        .badge-actions {
+          margin-top: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .badge-action-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 6px 12px;
+          font-family: inherit;
+          font-size: 11.5px;
+          font-weight: 600;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 140ms ease;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: var(--tone-color);
+          color: #ffffff;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .badge-action-btn:hover {
+          opacity: 0.92;
+          transform: translateY(-1px);
+          box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+        .badge-action-btn.danger {
+          background: #dc2626;
+          color: #ffffff;
+        }
+        .close-btn {
           position: absolute;
           top: 8px;
           right: 8px;
@@ -93,7 +126,7 @@ const BRTHBadge = (() => {
           transition: all 140ms ease;
           padding: 0;
         }
-        button:hover {
+        .close-btn:hover {
           color: #0f172a;
           background: rgba(15, 23, 42, 0.06);
         }
@@ -104,18 +137,20 @@ const BRTHBadge = (() => {
           <strong>BR Ticket Helper</strong>
         </div>
         <div class="text"></div>
-        <button type="button" aria-label="Dismiss notification">&times;</button>
+        <div class="badge-actions"></div>
+        <button type="button" class="close-btn" aria-label="Dismiss notification">&times;</button>
       </div>`;
     text = root.querySelector('.text');
-    root.querySelector('button').addEventListener('click', () => hide());
+    actionsContainer = root.querySelector('.badge-actions');
+    root.querySelector('.close-btn').addEventListener('click', () => hide());
     document.body.append(host);
   }
 
   // tone: 'info' | 'warn' | 'error'. Showing again under the same key replaces that message
   // and cancels its pending auto-hide.
-  function show(message, tone = 'info', hideAfterMs = 0, key = 'main') {
+  function show(message, tone = 'info', hideAfterMs = 0, key = 'main', action = null) {
     clearTimeout(messages.get(key)?.timer);
-    const entry = { message, tone, timer: null };
+    const entry = { message, tone, timer: null, action };
     if (hideAfterMs) entry.timer = setTimeout(() => hide(key), hideAfterMs);
     messages.set(key, entry);
     render();
@@ -141,6 +176,23 @@ const BRTHBadge = (() => {
     const entries = [...messages.values()];
     text.textContent = entries.map((e) => e.message).join('\n\n');
     host.dataset.tone = entries.reduce((worst, e) => (RANK[e.tone] > RANK[worst] ? e.tone : worst), 'info');
+
+    if (actionsContainer) {
+      actionsContainer.replaceChildren();
+      for (const entry of entries) {
+        if (entry.action) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `badge-action-btn ${entry.action.danger ? 'danger' : ''}`;
+          btn.textContent = entry.action.label;
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            entry.action.onClick?.();
+          });
+          actionsContainer.append(btn);
+        }
+      }
+    }
   }
 
   return { show, hide };

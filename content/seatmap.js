@@ -104,6 +104,7 @@
     }
     const totalSelected = allSelected.length;
     trackHold(totalSelected);
+    renderToolbar(layout, allSelected, rules);
 
     // After switching coach, wait until the map shows the new coach's seats.
     if (awaiting) {
@@ -140,7 +141,7 @@
       takeSeatArm(card); // nothing left to select: use up permission
       clearHighlight();
       handOff(layout, allSelected, lines, settings, rules);
-      render(lines, 'info');
+      render(lines, 'info', allSelected);
       return;
     }
 
@@ -242,7 +243,7 @@
       lines.push(`Only ${freeHere} free in ${current?.name ?? 'this coach'}; need ${countNeededHere} here.`);
     }
 
-    render(lines, pick ? 'info' : 'warn');
+    render(lines, pick ? 'info' : 'warn', allSelected);
   }
 
   // Starts the hold countdown (content/hold.js) at the first selected seat; stops it if every
@@ -272,6 +273,13 @@
     if (stop) {
       const choices = boarding.options.length;
       lines.push(`Boarding Station: ${stop}${choices > 1 ? ` (${choices} to choose from; check it's yours)` : ''}.`);
+    }
+
+    if (rules?.previewMode) {
+      lines.push('🔍 Seat Preview Mode active: Outlined and selected your seats on the map.');
+      lines.push('Direct purchase is disabled so NO 5-minute hold is placed on railway servers. Seats remain free for others.');
+      lines.push('Click "Free / Deselect Seats" above or close the page to release them immediately.');
+      return;
     }
 
     const autoPurchase = (rules?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true) !== false;
@@ -442,11 +450,16 @@
     setTimeout(schedule, SWITCH_WAIT_MS + 500); // report a failed switch even if the page never changes
   }
 
-  function render(lines, tone) {
+  function render(lines, tone, allSelected = []) {
     const summary = lines.join('\n');
     if (summary === lastSummary) return;
     lastSummary = summary;
-    BRTHBadge.show(summary, tone, 0, 'seats');
+    const action = (allSelected && allSelected.length > 0) ? {
+      label: '🔓 Free / Deselect Seats (Leave Free for Others)',
+      danger: true,
+      onClick: () => deselectAllSeats(),
+    } : null;
+    BRTHBadge.show(summary, tone, 0, 'seats', action);
   }
 
   // "CHA - 27 Seat(s)" -> { name: 'CHA', free: 27 }
@@ -529,6 +542,111 @@
     document.querySelectorAll('.brth-next').forEach((el) => el.classList.remove('brth-next'));
   }
 
+  async function deselectAllSeats(targetLayout) {
+    const layout = targetLayout || document.querySelector('app-seat-layout');
+    if (!layout) return;
+
+    autoSelecting = false;
+    picking = false;
+    clearHighlight();
+
+    let totalDeselected = 0;
+    const select = layout.querySelector('select#select-bogie');
+    const coaches = select ? readCoaches(select) : [];
+
+    // 1. Deselect in the current coach first
+    const currentSelected = Array.from(layout.querySelectorAll('button.btn-seat.seat-selected, button.seat-selected'));
+    for (const btn of currentSelected) {
+      try {
+        btn.click();
+        totalDeselected++;
+      } catch { /* skip */ }
+    }
+
+    // 2. Check if other coaches have tracked selections
+    const currentShownName = layout.querySelector('.seat-row button.btn-seat')?.title.split('-')[0].toLowerCase() || '';
+    const otherCoachesWithSeats = [];
+    for (const [coachKey, set] of selectedByCoach.entries()) {
+      if (coachKey !== currentShownName && set.size > 0) {
+        otherCoachesWithSeats.push(coachKey);
+      }
+    }
+
+    if (otherCoachesWithSeats.length > 0 && select) {
+      BRTHBadge.show(`Released seats in current coach. Switching to release seats in coach ${otherCoachesWithSeats.join(', ').toUpperCase()}…`, 'info', 0, 'release');
+      for (const otherName of otherCoachesWithSeats) {
+        const targetCoach = coaches.find((c) => c.name.toLowerCase() === otherName);
+        if (targetCoach) {
+          select.value = targetCoach.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          await sleep(600);
+          const newSelected = Array.from(layout.querySelectorAll('button.btn-seat.seat-selected, button.seat-selected'));
+          for (const btn of newSelected) {
+            try {
+              btn.click();
+              totalDeselected++;
+            } catch { /* skip */ }
+          }
+        }
+      }
+    }
+
+    selectedByCoach.clear();
+    await chrome.storage.local.remove('holdStart');
+    BRTHBadge.hide('hold');
+    BRTHBadge.hide('seats');
+    BRTHBadge.hide('picking');
+
+    const tb = layout.querySelector('.brth-seat-toolbar');
+    if (tb) tb.remove();
+
+    BRTHBadge.show(`✓ ${totalDeselected || 'All'} seat(s) deselected! They are now immediately free for other passengers without any 5-minute wait.`, 'info', 6000, 'release');
+    schedule();
+  }
+
+  function renderToolbar(layout, allSelected, rules) {
+    let toolbar = layout.querySelector('.brth-seat-toolbar');
+    if (!allSelected.length) {
+      if (toolbar) toolbar.remove();
+      return;
+    }
+
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.className = 'brth-seat-toolbar';
+      const target = layout.querySelector('.seat-layout-container, .seat-structure, .select-bogie-container, .seat-row');
+      if (target && target.parentNode) {
+        target.before(toolbar);
+      } else {
+        layout.prepend(toolbar);
+      }
+    }
+
+    const seatLabels = allSelected.join(', ');
+    toolbar.innerHTML = `
+      <div class="brth-toolbar-info">
+        <span class="brth-toolbar-dot"></span>
+        <span class="brth-toolbar-text">
+          <strong>${allSelected.length} seat${allSelected.length > 1 ? 's' : ''} selected:</strong> ${seatLabels}
+        </span>
+        ${rules?.previewMode ? '<span class="brth-preview-pill">🔍 Preview Mode (No Hold)</span>' : ''}
+      </div>
+      <button type="button" class="brth-release-seats-btn" id="brth-free-seats-btn" title="Deselect all seats immediately so others can book without waiting 5 minutes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+        Free / Deselect Seats (Leave Free for Others)
+      </button>
+    `;
+
+    toolbar.querySelector('#brth-free-seats-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      deselectAllSeats(layout);
+    });
+  }
+
   function injectStyles() {
     const style = document.createElement('style');
     style.textContent = `
@@ -541,6 +659,70 @@
         outline: 3px solid #079d49 !important;
         outline-offset: 3px;
         box-shadow: 0 0 12px 3px rgba(7, 157, 73, 0.55) !important;
+      }
+      .brth-seat-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #10b981;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 12px 0 16px 0;
+        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        color: #1e293b;
+        animation: brthFadeIn 180ms ease;
+      }
+      @keyframes brthFadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .brth-toolbar-info {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .brth-toolbar-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 6px #10b981;
+      }
+      .brth-preview-pill {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: rgba(217, 119, 6, 0.12);
+        color: #b45309;
+        border: 1px solid rgba(217, 119, 6, 0.3);
+      }
+      .brth-release-seats-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #fff;
+        border: 1px solid #dc2626;
+        color: #dc2626;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 140ms ease;
+      }
+      .brth-release-seats-btn:hover {
+        background: #dc2626;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
       }
     `;
     document.head.append(style);

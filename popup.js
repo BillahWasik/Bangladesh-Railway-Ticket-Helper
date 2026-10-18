@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const fields = {
-  from: $('from'), to: $('to'), doj: $('doj'), timePref: $('time-pref'), cls: $('cls'), seats: $('seats'), trains: $('trains'), autoContinuePurchase: $('auto-continue-purchase'),
+  from: $('from'), to: $('to'), doj: $('doj'), timePref: $('time-pref'), cls: $('cls'), seats: $('seats'), trains: $('trains'), autoContinuePurchase: $('auto-continue-purchase'), previewMode: $('preview-mode'),
 };
 
 // Don't nag about empty fields until the user has started filling the form.
@@ -117,15 +117,36 @@ async function init() {
 
   if (fields.autoContinuePurchase) {
     fields.autoContinuePurchase.checked = trip?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true;
+    fields.autoContinuePurchase.addEventListener('change', () => {
+      if (fields.autoContinuePurchase.checked && fields.previewMode) {
+        fields.previewMode.checked = false;
+      }
+      onEdit();
+    });
+  }
+
+  if (fields.previewMode) {
+    fields.previewMode.checked = trip?.previewMode ?? settings?.previewMode ?? false;
+    fields.previewMode.addEventListener('change', () => {
+      if (fields.previewMode.checked && fields.autoContinuePurchase) {
+        fields.autoContinuePurchase.checked = false;
+      }
+      onEdit();
+    });
   }
 
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.settings?.newValue?.autoContinuePurchase !== undefined) {
       if (fields.autoContinuePurchase) {
         fields.autoContinuePurchase.checked = changes.settings.newValue.autoContinuePurchase;
-        render();
       }
     }
+    if (changes.settings?.newValue?.previewMode !== undefined) {
+      if (fields.previewMode) {
+        fields.previewMode.checked = changes.settings.newValue.previewMode;
+      }
+    }
+    render();
   });
 
   // Restore schedule UI if an alarm is actually active
@@ -506,6 +527,7 @@ function readTrip() {
     seats: Number(fields.seats.value),
     trains: fields.trains.value.trim(),
     autoContinuePurchase: fields.autoContinuePurchase ? fields.autoContinuePurchase.checked : true,
+    previewMode: fields.previewMode ? fields.previewMode.checked : false,
   };
 }
 
@@ -542,6 +564,7 @@ async function onEdit() {
   render(trip);
   const { settings = {} } = await BRTH.load(['settings']);
   settings.autoContinuePurchase = trip.autoContinuePurchase;
+  settings.previewMode = trip.previewMode;
   await BRTH.save({ trip, settings });
   const statusEl = $('status');
   if (statusEl) {
@@ -602,7 +625,10 @@ function render(trip = readTrip()) {
     const trains = BRTH.parseTrainPrefs(trip.trains);
     const fallbackList = getFallbackClasses();
     const hierarchy = [trip.cls, ...fallbackList].filter(Boolean).join(' → ');
-    const purchaseMode = trip.autoContinuePurchase !== false ? '⚡ Direct Purchase' : '👁️ Review Seats First';
+    let purchaseMode = trip.autoContinuePurchase !== false ? '⚡ Direct Purchase' : '👁️ Review Seats First';
+    if (trip.previewMode) {
+      purchaseMode = '🔍 Preview Only (Dry Run - No Hold)';
+    }
     $('ready').textContent = `Ready: ${trip.from} → ${trip.to} · ${BRTH.toSiteDate(trip.doj)} · Class: ${hierarchy}` +
       ` · ${trip.seats} seat${trip.seats > 1 ? 's' : ''}` +
       (trains.length ? ` · prefers ${trip.trains}` : ' · any train') +

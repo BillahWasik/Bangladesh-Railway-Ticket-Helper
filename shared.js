@@ -399,6 +399,7 @@ const BRTH = (() => {
   // The user's seat rules, with defaults: 1 seat, window, together, any coach.
   function seatRules(trip, settings) {
     const count = Number(trip?.seats) || 1;
+    const previewMode = Boolean(trip?.previewMode ?? settings?.previewMode ?? false);
     return {
       count: Math.min(4, Math.max(1, count)),
       position: settings?.seatPosition ?? 'window', // 'window' | 'aisle' | 'any'
@@ -406,7 +407,8 @@ const BRTH = (() => {
       coaches: parseTrainPrefs(settings?.preferredCoaches), // same "a, b" format, lower-cased
       splitCoaches: settings?.splitCoaches ?? true,
       avoidLavatory: settings?.avoidLavatory ?? true,
-      autoContinuePurchase: trip?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true,
+      previewMode,
+      autoContinuePurchase: previewMode ? false : (trip?.autoContinuePurchase ?? settings?.autoContinuePurchase ?? true),
     };
   }
 

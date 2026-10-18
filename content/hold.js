@@ -40,7 +40,7 @@
     if (left <= 0) {
       clearInterval(ticker);
       ticker = null;
-      BRTHBadge.show('Seat hold has probably expired. If payment fails, search and book again.',
+      BRTHBadge.show('Seat hold has expired. The railway server has released the seats back to the public pool.',
         'error', EXPIRED_SHOW_MS, 'hold');
       beep(3);
       return;
@@ -48,8 +48,23 @@
     const mm = Math.floor(left / 60);
     const ss = String(left % 60).padStart(2, '0');
     const urgent = left <= WARN_AT_S[0];
-    BRTHBadge.show(`Seats held for about ${mm}:${ss} more. Finish the OTP and payment.`,
-      urgent ? 'warn' : 'info', 0, 'hold');
+
+    const isCheckoutPage = ['/payment', '/checkout', '/confirm', '/passenger'].some((p) => location.pathname.toLowerCase().includes(p));
+
+    const message = isCheckoutPage
+      ? `Seats held on railway server for ${mm}:${ss}.\nIf you do not want to pay, leaving this page will let Bangladesh Railway return the seats to others once this timer reaches 0:00.`
+      : `Seats held for about ${mm}:${ss} more. Finish the OTP and payment.`;
+
+    const action = isCheckoutPage ? {
+      label: '↩ Abandon Booking & Return to Search',
+      danger: true,
+      onClick: async () => {
+        await chrome.storage.local.remove('holdStart');
+        window.location.href = 'https://eticket.railway.gov.bd/booking/train/search';
+      },
+    } : null;
+
+    BRTHBadge.show(message, urgent ? 'warn' : 'info', 0, 'hold', action);
     for (const at of WARN_AT_S) {
       if (left <= at && !warned.has(at)) {
         warned.add(at);
